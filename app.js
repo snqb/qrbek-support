@@ -1,7 +1,6 @@
 import {
   BANKS,
   decodePage,
-  encodePage,
   inspectQr,
   normalizePage,
   paymentTarget,
@@ -73,7 +72,7 @@ const methodTemplate = (method, index) =>
   }</span><span class="method-bank-name"></span></div><button class="remove-method" type="button" aria-label="Удалить QR ${
     index + 1
   }">×</button></div>
-  <button class="upload-qr" type="button"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 8h8v8H8z"/></svg><span>Выбрать фото QR</span></button>
+  <button class="upload-qr" type="button"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 8h8v8H8z"/></svg><span class="upload-qr-copy"><span>Выбрать фото QR</span><small>Или перетащите одно фото сюда</small></span></button>
   <label class="field method-value-field"><span>Или ссылка / текст QR</span><textarea class="method-value" rows="2" maxlength="3000" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="qr-status-${index}" placeholder="https://…">${
     escapeHtml(method.value)
   }</textarea></label>
@@ -87,11 +86,47 @@ const methodTemplate = (method, index) =>
   }" placeholder="Например, личный"></label></details>
 </article>`;
 
+async function requestPage(path, options = {}) {
+  let response, data;
+  try {
+    response = await fetch(path, {
+      ...options,
+      credentials: "omit",
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    data = await response.json();
+  } catch {
+    throw new Error(
+      "Сервер недоступен. Проверьте соединение и попробуйте снова.",
+    );
+  }
+  if (!response.ok) {
+    const error = new Error(data.message || "Не удалось обработать ссылку.");
+    error.code = data.error;
+    throw error;
+  }
+  return data;
+}
+
 function initBuilder() {
   const form = $("#payment-form");
   if (!form) return;
   const list = $("#methods-list");
   let methods = [];
+  const slugInput = $("#page-slug");
+  const updateSlugPreview = () => {
+    const slug = slugInput.value.trim().toLowerCase();
+    setText(
+      $("#slug-preview"),
+      slug
+        ? `${location.host}/p/${slug}`
+        : "Оставьте пустым для случайного адреса.",
+    );
+    slugInput.removeAttribute("aria-invalid");
+  };
+  slugInput.addEventListener("input", updateSlugPreview);
+  updateSlugPreview();
   const draft = fragmentDraft();
   if (draft?.methods?.length) methods = draft.methods.slice(0, 8);
   else methods = [emptyMethod()];
@@ -171,6 +206,8 @@ function initBuilder() {
     const row = event.target.closest(".method-row");
     if (!row) return;
     if (event.target.classList.contains("method-value")) {
+      row._inputGeneration = (row._inputGeneration || 0) + 1;
+      row._pendingUpload = null;
       window.clearTimeout(row._inspectTimer),
         row._inspectTimer = window.setTimeout(
           () => validateMethod(row, event.target.value.trim()),
@@ -199,33 +236,45 @@ function initBuilder() {
     renderMethods();
     $(".upload-qr", list.lastElementChild)?.focus();
   });
+  const isBuilderBusy = () => form.getAttribute("aria-busy") === "true";
   const decodeUpload = (file, row) => {
-    if (!file || file.size > 12 * 1024 * 1024) {
-      announce(
-        $(".method-status", row),
-        "Фото слишком большое (максимум 12 МБ).",
-        true,
-      );
+    const generation = (row._inputGeneration || 0) + 1;
+    row._inputGeneration = generation;
+    row._pendingUpload = null;
+    const isCurrent = () =>
+      row.isConnected && row._inputGeneration === generation;
+    const status = $(".method-status", row);
+    const mime = String(file?.type || "");
+    if (!file) {
+      announce(status, "Перетащите одно фото QR.", true);
+      return;
+    }
+    if (mime && !/^image\//i.test(mime)) {
+      announce(status, "Выберите изображение QR-кода.", true);
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      announce(status, "Фото слишком большое (максимум 12 МБ).", true);
       return;
     }
     if (!globalThis.jsQR) {
-      announce(
-        $(".method-status", row),
-        "Декодер изображения пока недоступен.",
-        true,
-      );
+      announce(status, "Декодер изображения пока недоступен.", true);
       return;
     }
+    row._pendingUpload = generation;
+    announce(status, "Распознаём QR…");
     const reader = new FileReader();
-    reader.onerror = () =>
-      announce(
-        $(".method-status", row),
-        "Не удалось прочитать изображение.",
-        true,
-      );
+    reader.onerror = () => {
+      if (!isCurrent()) return;
+      row._pendingUpload = null;
+      announce(status, "Не удалось прочитать изображение.", true);
+    };
     reader.onload = () => {
+      if (!isCurrent()) return;
       const image = new Image();
       image.onload = () => {
+        if (!isCurrent()) return;
+        row._pendingUpload = null;
         const max = 1800,
           scale = Math.min(1, max / Math.max(image.width, image.height));
         const canvas = document.createElement("canvas");
@@ -240,25 +289,124 @@ function initBuilder() {
           { inversionAttempts: "attemptBoth" },
         );
         if (!result?.data) {
-          announce($(".method-status", row), "QR-код на фото не найден.", true);
+          if (isCurrent()) announce(status, "QR-код на фото не найден.", true);
           return;
         }
+        if (!isCurrent()) return;
         $(".method-value", row).value = result.data;
+        announce(status, "QR найден");
         $(".method-value", row).dispatchEvent(
           new Event("input", { bubbles: true }),
         );
-        announce($(".method-status", row), "QR найден");
       };
-      image.onerror = () =>
-        announce(
-          $(".method-status", row),
-          "Не удалось открыть изображение.",
-          true,
-        );
+      image.onerror = () => {
+        if (!isCurrent()) return;
+        row._pendingUpload = null;
+        announce(status, "Не удалось открыть изображение.", true);
+      };
       image.src = reader.result;
     };
     reader.readAsDataURL(file);
   };
+  const rowFromEvent = (event) =>
+    event.target instanceof Element
+      ? event.target.closest(".method-row")
+      : null;
+  const isFileOnlyDrag = (event) => {
+    const transfer = event.dataTransfer;
+    if (!transfer) return false;
+    return [...transfer.types].includes("Files") || transfer.files.length > 0;
+  };
+  const clearDropHighlight = () => {
+    $$(".method-row", list).forEach((row) => {
+      row._dragDepth = 0;
+      row.classList.remove("is-drop-target");
+    });
+  };
+  list.addEventListener("dragenter", (event) => {
+    if (!isFileOnlyDrag(event)) return;
+    event.preventDefault();
+    const row = rowFromEvent(event);
+    if (!row) return;
+    row._dragDepth = (row._dragDepth || 0) + 1;
+    row.classList.add("is-drop-target");
+  });
+  list.addEventListener("dragover", (event) => {
+    if (!isFileOnlyDrag(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = isBuilderBusy() ? "none" : "copy";
+    const row = rowFromEvent(event);
+    if (!row) return;
+    if (!row.classList.contains("is-drop-target")) row._dragDepth = 1;
+    row.classList.add("is-drop-target");
+  });
+  list.addEventListener("dragleave", (event) => {
+    const row = rowFromEvent(event);
+    if (!row) return;
+    row._dragDepth = Math.max(0, (row._dragDepth || 1) - 1);
+    if (!row._dragDepth) row.classList.remove("is-drop-target");
+  });
+  list.addEventListener("drop", (event) => {
+    if (!isFileOnlyDrag(event)) {
+      clearDropHighlight();
+      return;
+    }
+    event.preventDefault();
+    event._qrbekFileDropHandled = true;
+    const row = rowFromEvent(event);
+    clearDropHighlight();
+    if (isBuilderBusy()) return;
+    if (!row) {
+      announce(
+        $("#methods-error"),
+        "Перетащите одно изображение на нужную карточку QR.",
+        true,
+      );
+      return;
+    }
+    announce($("#methods-error"), "");
+    const files = [...(event.dataTransfer?.files || [])];
+    if (files.length !== 1) {
+      row._inputGeneration = (row._inputGeneration || 0) + 1;
+      row._pendingUpload = null;
+      announce(
+        $(".method-status", row),
+        files.length > 1
+          ? "Перетащите только одно изображение QR."
+          : "Не удалось получить изображение. Перетащите одно фото QR.",
+        true,
+      );
+      return;
+    }
+    decodeUpload(files[0], row);
+  });
+  window.addEventListener("dragover", (event) => {
+    if (isFileOnlyDrag(event)) event.preventDefault();
+  });
+  window.addEventListener("drop", (event) => {
+    if (!isFileOnlyDrag(event)) {
+      clearDropHighlight();
+      return;
+    }
+    event.preventDefault();
+    clearDropHighlight();
+    if (isBuilderBusy()) return;
+    if (!event._qrbekFileDropHandled) {
+      announce(
+        $("#methods-error"),
+        "Перетащите одно изображение на нужную карточку QR.",
+        true,
+      );
+    }
+  });
+  window.addEventListener("dragleave", (event) => {
+    if (!event.relatedTarget) clearDropHighlight();
+  });
+  window.addEventListener("dragend", clearDropHighlight);
+  window.addEventListener("blur", clearDropHighlight);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") clearDropHighlight();
+  });
   list.addEventListener("click", (event) => {
     if (!event.target.closest(".upload-qr")) return;
     const row = event.target.closest(".method-row");
@@ -277,6 +425,7 @@ function initBuilder() {
   $("#reset-form").addEventListener("click", () => {
     methods = [emptyMethod()];
     form.reset();
+    updateSlugPreview();
     $(".comment-toggle").open = false;
     renderMethods();
     announce($("#methods-error"), "");
@@ -285,6 +434,8 @@ function initBuilder() {
   $("#create-again").addEventListener("click", () => {
     hide($("#success-panel"));
     show(form);
+    slugInput.value = "";
+    updateSlugPreview();
     $(".upload-qr", list)?.focus();
   });
   $("#copy-link").addEventListener(
@@ -302,11 +453,19 @@ function initBuilder() {
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (isBuilderBusy()) return;
+    if ($$(".method-row", list).some((row) => row._pendingUpload != null)) {
+      announce($("#form-status"), "Дождитесь распознавания фото.", true);
+      return;
+    }
     sync();
     const status = $("#form-status");
     announce(status, "");
     const submit = $('button[type="submit"]', form);
-    submit.disabled = true;
+    const enabledControls = [...form.elements].filter((control) =>
+      !control.disabled
+    );
+    enabledControls.forEach((control) => control.disabled = true);
     submit.textContent = "Создаём…";
     form.setAttribute("aria-busy", "true");
     const page = {
@@ -318,6 +477,13 @@ function initBuilder() {
       methods,
     };
     try {
+      const slug = slugInput.value.trim().toLowerCase();
+      if (slug && !/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(slug)) {
+        slugInput.setAttribute("aria-invalid", "true");
+        throw new Error(
+          "Адрес: от 3 до 32 латинских букв, цифр или дефисов. Дефис не может быть первым или последним.",
+        );
+      }
       const normalized = normalizePage(page);
       for (const method of normalized.methods) {
         const inspected = await inspectQr(method.value);
@@ -329,8 +495,19 @@ function initBuilder() {
         }
         await paymentTarget(method.value, normalized.amount, "");
       }
-      const encoded = encodePage(normalized);
-      const path = `/pay.html#p=${encoded}`;
+      const created = await requestPage("/api/pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page: normalized, ...(slug ? { slug } : {}) }),
+      });
+      if (
+        typeof created.id !== "string" ||
+        !/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(created.id) ||
+        created.path !== `/p/${created.id}`
+      ) {
+        throw new Error("Сервер вернул некорректный адрес страницы.");
+      }
+      const path = created.path;
       const url = `${location.origin}${path}`;
       setText($("#success-title"), normalized.title || "Оплата по QR");
       setText(
@@ -345,15 +522,19 @@ function initBuilder() {
       hide(form);
       $("#success-heading").focus();
     } catch (error) {
+      if (error.code === "slug_taken") {
+        slugInput.setAttribute("aria-invalid", "true");
+      }
       announce(
         status,
         error.message || "Проверьте данные и попробуйте снова.",
         true,
       );
     } finally {
-      submit.disabled = false;
+      enabledControls.forEach((control) => control.disabled = false);
       submit.textContent = "Создать ссылку";
       form.removeAttribute("aria-busy");
+      if (slugInput.hasAttribute("aria-invalid")) slugInput.focus();
     }
   });
   renderMethods();
@@ -385,12 +566,17 @@ async function copyText(text, feedbackNode, feedback = "Скопировано")
   }
 }
 
-function initReceiver() {
+async function initReceiver() {
   const pagePanel = $("#payment-page");
   if (!pagePanel) return;
   let page;
   try {
-    page = decodePage(location.hash);
+    const shortLink = location.pathname.match(
+      /^\/p\/([a-z0-9][a-z0-9-]{1,30}[a-z0-9])$/,
+    );
+    page = shortLink
+      ? normalizePage(await requestPage(`/api/pages/${shortLink[1]}`))
+      : decodePage(location.hash);
   } catch (error) {
     show($("#invalid-state"));
     setText(
@@ -398,6 +584,8 @@ function initReceiver() {
       error.message || "Ссылка неполная или данные повреждены.",
     );
     return;
+  } finally {
+    hide($("#page-loading"));
   }
   show(pagePanel);
   $("#qr-details").open = matchMedia("(min-width: 960px)").matches;

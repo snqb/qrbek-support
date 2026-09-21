@@ -7,9 +7,9 @@
     <meta name="theme-color" content="#0c1711">
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
+      content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
     <title>QRbek — Ссылка на оплату</title>
-    <link rel="stylesheet" href="/styles.css?v=20260921-selected1">
+    <link rel="stylesheet" href="/styles.css?v=20260922-links1">
     <link rel="icon" href="/assets/mark.png">
   </head>
   <body class="builder-page">
@@ -47,6 +47,18 @@
                 </details>
               </div>
             </details>
+            <div class="metadata-fields">
+              <label class="field">
+                <span>Свой адрес <small class="field-optional">необязательно</small></span>
+                <input id="page-slug" type="text" name="slug" maxlength="32"
+                  autocapitalize="off" autocomplete="off" spellcheck="false"
+                  placeholder="Например, esen"
+                  aria-describedby="slug-hint slug-preview">
+                <small id="slug-hint"
+                  class="field-hint">Латиница, цифры и дефис · 3–32 знака</small>
+                <small id="slug-preview" class="field-hint"></small>
+              </label>
+            </div>
             <div id="form-status" role="status" aria-live="polite" hidden></div>
             <div class="form-actions">
               <button type="submit"
@@ -55,7 +67,7 @@
                 class="button button-ghost">Очистить</button>
             </div>
             <p
-              class="disclosure">Данные видны всем, у кого есть ссылка. Отозвать её нельзя.</p>
+              class="disclosure">Создавая ссылку, вы публикуете QR и введённые данные на сервере. Их сможет открыть любой, кто знает или угадает адрес. Фото остаётся в браузере.</p>
           </section>
         </form>
         <section id="success-panel" aria-labelledby="success-heading" hidden>
@@ -70,7 +82,7 @@
             <button id="share-link" type="button"
               class="button">Поделиться</button>
             <button id="create-again" type="button"
-              class="button button-ghost">Изменить</button>
+              class="button button-ghost">Создать похожую</button>
           </div>
         </section>
       </main>
@@ -78,6 +90,6 @@
         class="site-footer"><a href="/support.html">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></footer>
     </div>
     <script src="/vendor/jsqr.js"></script>
-    <script src="/app.js?v=20260922-amount2" type="module"></script>
+    <script src="/app.js?v=20260922-links1" type="module"></script>
   </body>
 </html>

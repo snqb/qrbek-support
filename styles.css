@@ -272,12 +272,42 @@ h2 {
   background: var(--forest-inset);
 }
 .upload-qr svg {
+  flex: 0 0 auto;
   color: var(--yellow);
+}
+.upload-qr-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+.upload-qr-copy small {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.method-row.is-drop-target {
+  border-color: var(--yellow);
+  background: var(--yellow-dim);
+}
+.method-row.is-drop-target .upload-qr {
+  border-color: var(--yellow);
+  background: var(--yellow-dim);
 }
 .field {
   display: grid;
   gap: 6px;
   min-width: 0;
+}
+.field-hint,
+.field-optional {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.field-optional {
+  margin-left: 8px;
 }
 .field > span {
   color: var(--ink-secondary);

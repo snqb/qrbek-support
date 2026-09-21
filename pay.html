@@ -7,9 +7,10 @@
     <meta name="theme-color" content="#0c1711">
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
+      content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
     <title>QRbek — Оплата</title>
-    <link rel="stylesheet" href="/styles.css?v=20260921-selected1">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="/styles.css?v=20260922-links1">
     <link rel="icon" href="/assets/mark.png">
   </head>
   <body class="receiver-page">
@@ -21,6 +22,7 @@
         <a href="/" class="header-link">Создать ссылку</a>
       </header>
       <main id="main">
+        <p id="page-loading" role="status">Загружаем страницу…</p>
         <section id="invalid-state" hidden>
           <h1>Ссылка не открывается</h1>
           <p id="invalid-message"></p>
@@ -74,6 +76,6 @@
         class="site-footer"><a href="/support.html">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></footer>
     </div>
     <script src="/vendor/qrcode.js"></script>
-    <script src="/app.js?v=20260922-amount2" type="module"></script>
+    <script src="/app.js?v=20260922-links1" type="module"></script>
   </body>
 </html>
