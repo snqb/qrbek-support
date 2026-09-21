@@ -159,7 +159,7 @@ h3 { letter-spacing: -.02em; }
 .receipt-panel-head h2 { margin: 0; font-size: 1.9rem; }
 .muted-count { color: var(--muted); font-size: .75rem; }
 .receiver-methods { display: grid; gap: 0; }
-.receiver-method { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 78px; padding: 13px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; }
+.receiver-method { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; min-height: 78px; padding: 13px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-align: left; appearance: none; }
 .receiver-method[aria-pressed="true"] { color: var(--forest); }
 .receiver-method input { position: absolute; opacity: 0; pointer-events: none; }
 .method-radio { width: 18px; height: 18px; border: 1px solid var(--muted); border-radius: 50%; }
