@@ -1,2 +1,83 @@
-<!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>QRbek</title><link rel="stylesheet" href="/styles.css?v=20260921-compare1"></head><body><main class="page-shell"><h1>QRbek</h1><a href="/compare.html">Сравнить два варианта</a></main><script type="module" src="/compare.js?v=20260921-compare1"></script></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#0c1711">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>QRbek — Ссылка на оплату</title>
+    <link rel="stylesheet" href="/styles.css?v=20260921-selected1">
+    <link rel="icon" href="/assets/mark.png">
+  </head>
+  <body class="builder-page">
+    <a class="skip-link" href="#main">К содержимому</a>
+    <div class="page-shell">
+      <header class="site-header">
+        <a href="/" class="logo"
+          aria-label="QRbek, на главную"><img src="/assets/mark.png" alt="" width="32" height="32"><span>QRbek</span></a>
+        <a href="/support.html" class="header-link">Помощь</a>
+      </header>
+      <main id="main">
+        <div class="page-heading">
+          <h1>Ссылка на оплату</h1>
+        </div>
+        <form id="payment-form" class="builder-layout" novalidate>
+          <section class="qr-inputs" aria-labelledby="qr-inputs-title">
+            <h2 id="qr-inputs-title"
+              class="section-title sr-only">QR получателя</h2>
+            <div id="methods-list"></div>
+            <button id="add-method" type="button">+ Ещё QR</button>
+            <div id="methods-error" role="alert" hidden></div>
+          </section>
+          <section class="link-details" aria-label="Детали ссылки">
+            <details class="metadata-details" open>
+              <summary>Имя, сумма, комментарий <small>необязательно</small></summary>
+              <div class="metadata-fields">
+                <label
+                  class="field"><span>Имя или название</span><input id="page-title" type="text" maxlength="80" name="title" placeholder="Например, мастерская" enterkeyhint="next"></label>
+                <label
+                  class="field"><span>Сумма, сом</span><input id="page-amount" type="text" inputmode="decimal" placeholder="Не задана" enterkeyhint="done"></label>
+                <details class="comment-toggle">
+                  <summary>Комментарий</summary>
+                  <label
+                    class="field"><span class="sr-only">Комментарий</span><textarea id="page-note" maxlength="240" rows="2" placeholder="Например, за заказ"></textarea></label>
+                </details>
+              </div>
+            </details>
+            <div id="form-status" role="status" aria-live="polite" hidden></div>
+            <div class="form-actions">
+              <button type="submit"
+                class="button button-primary">Создать ссылку</button>
+              <button id="reset-form" type="button"
+                class="button button-ghost">Очистить</button>
+            </div>
+            <p
+              class="disclosure">Данные видны всем, у кого есть ссылка. Отозвать её нельзя.</p>
+          </section>
+        </form>
+        <section id="success-panel" aria-labelledby="success-heading" hidden>
+          <h1 id="success-heading" tabindex="-1">Ссылка готова</h1>
+          <div
+            class="link-summary"><h2 id="success-title"></h2><p id="success-summary"></p><code id="published-url"></code></div>
+          <div class="success-actions">
+            <button id="copy-link" type="button"
+              class="button button-primary">Копировать ссылку</button>
+            <a id="open-link" class="button" target="_blank"
+              rel="noopener">Открыть страницу ↗</a>
+            <button id="share-link" type="button"
+              class="button">Поделиться</button>
+            <button id="create-again" type="button"
+              class="button button-ghost">Изменить</button>
+          </div>
+        </section>
+      </main>
+      <footer
+        class="site-footer"><a href="/support.html">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></footer>
+    </div>
+    <script src="/vendor/jsqr.js"></script>
+    <script src="/app.js?v=20260921-selected1" type="module"></script>
+  </body>
+</html>

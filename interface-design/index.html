@@ -1,95 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
-  <title>QRbek — Ссылка на оплату</title>
-  <link rel="stylesheet" href="./styles.css?v=20260921-compare1">
-  <link rel="icon" href="/assets/mark.png">
-</head>
-<body class="builder-page" data-design-base="/interface-design">
-  <div class="page-shell">
-
-    <header class="site-header">
-      <a href="/" class="logo">
-        <img src="/assets/mark.png" alt="QRbek" width="28" height="28">
-        <span>QRbek</span>
-      </a>
-      <nav class="header-nav">
-        <a href="/compare.html">Сравнить</a>
-      </nav>
-    </header>
-
-    <main>
-      <div class="page-heading">
-        <h1>Ссылка на оплату</h1>
-        <p class="subline">Без регистрации</p>
-      </div>
-
-      <form id="payment-form" novalidate>
-
-        <section>
-          <div id="methods-list"></div>
-          <button id="add-method" type="button">Ещё QR</button>
-          <div id="methods-error" role="alert" hidden></div>
-        </section>
-
-        <div class="metadata-fields">
-          <label class="field">
-            <span>Имя или название</span>
-            <input id="page-title" type="text" maxlength="80" name="title" placeholder="Имя или название">
-          </label>
-
-          <label class="field">
-            <span>Сумма, сом</span>
-            <input id="page-amount" type="text" inputmode="decimal" placeholder="Любая">
-          </label>
-
-          <details class="comment-toggle">
-            <summary>Комментарий</summary>
-            <label class="field">
-              <span>Комментарий</span>
-              <textarea id="page-note" maxlength="240" rows="2" placeholder="Например, за аренду"></textarea>
-            </label>
-          </details>
-        </div>
-
-        <div id="form-status" role="status" aria-live="polite" hidden></div>
-
-        <div class="form-actions">
-          <button type="submit" class="button button-primary">Создать ссылку</button>
-          <button id="reset-form" type="button" class="button button-ghost">Очистить</button>
-        </div>
-
-      </form>
-
-      <p class="disclosure">Данные видны всем, у кого есть ссылка. Отозвать её нельзя. <a href="/privacy.html">Политика</a></p>
-
-      <section id="success-panel" hidden>
-        <h2>Ссылка готова</h2>
-        <div class="url-display">
-          <code id="published-url"></code>
-        </div>
-        <div role="status"></div>
-        <div class="success-actions">
-          <button id="copy-link" type="button" class="button">Копировать</button>
-          <a id="open-link" class="button" target="_blank" rel="noopener">Открыть</a>
-          <button id="share-link" type="button" class="button button-primary">Поделиться</button>
-          <button id="create-again" type="button" class="button button-ghost">Изменить</button>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <a href="/support.html">Поддержка</a>
-      <a href="/privacy.html">Конфиденциальность</a>
-    </footer>
-
-  </div>
-
-  <script src="/vendor/jsqr.js"></script>
-  <script src="/app.js?v=20260921-zero-amount1" type="module"></script>
-</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>QRbek</title>
+    <script src="/redirect.js"></script>
+  </head>
+  <body><noscript>Для открытия QRbek включите JavaScript.</noscript></body>
 </html>
