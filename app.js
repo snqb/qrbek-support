@@ -5,7 +5,7 @@ import {
   inspectQr,
   normalizePage,
   paymentTarget,
-} from './payment.js?v=20260921-compare1';
+} from './payment.js?v=20260921-zero-amount1';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

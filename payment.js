@@ -55,7 +55,7 @@ function codePointCount(value) {
   return Array.from(value).length;
 }
 
-function normalizeAmount(value, field = "сумма") {
+function normalizeAmount(value, field = "сумма", allowZero = false) {
   if (typeof value !== "string") error(`${field} должна быть строкой`);
   if (value === "") return "";
   if (!/^(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,2})?$/.test(value)) {
@@ -63,11 +63,11 @@ function normalizeAmount(value, field = "сумма") {
   }
   const [whole, fraction = ""] = value.split(".");
   const cents = BigInt(whole) * 100n + BigInt((fraction + "00").slice(0, 2));
-  if (cents < 1n || cents > 99_999_999_999n) error(`${field} должна быть от 0.01 до 999999999.99 KGS`);
+  if (cents < (allowZero ? 0n : 1n) || cents > 99_999_999_999n) error(`${field} должна быть от ${allowZero ? "0" : "0.01"} до 999999999.99 KGS`);
   return value;
 }
 function amountCents(value) {
-  const normalized = normalizeAmount(value, "сумма");
+  const normalized = normalizeAmount(value, "сумма", true);
   if (normalized === "") return null;
   const [whole, fraction = ""] = normalized.split(".");
   return BigInt(whole) * 100n + BigInt((fraction + "00").slice(0, 2));
@@ -324,7 +324,7 @@ function parseElqrSource(value) {
   const country = parsed.byTag.get("58");
   if (parsed.byTag.has("54")) {
     if (parsed.byTag.get("54") === "") error("сумма в QR пуста");
-    normalizeAmount(parsed.byTag.get("54"), "сумма в QR");
+    normalizeAmount(parsed.byTag.get("54"), "сумма в QR", true);
   }
   if (country && country.toUpperCase() !== "KG") error("QR не относится к Кыргызстану");
   const details = merchantData(parsed);
@@ -389,7 +389,7 @@ export async function paymentTarget(value, amount = "", sourceBankId = "") {
   const existing = source.parsed.byTag.get("54");
   if (!requested) {
     const url = trimmed.startsWith("0002") || sourceBankId ? targetUrl(source.payload) : trimmed;
-    return { qrText: qrTextFor(source.payload, url, true), url, amount: existing ?? "", amountApplied: false, notice: "" };
+    return { qrText: qrTextFor(source.payload, url, true), url, amount: amountCents(existing ?? "") === 0n ? "" : existing ?? "", amountApplied: false, notice: "" };
   }
   if (existing && amountCents(existing) === amountCents(requested)) {
     const url = trimmed.startsWith("0002") || sourceBankId ? targetUrl(source.payload) : trimmed;
