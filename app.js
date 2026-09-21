@@ -5,11 +5,12 @@ import {
   inspectQr,
   normalizePage,
   paymentTarget,
-} from './payment.js';
+} from './payment.js?v=20260921-compare1';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const pageKind = document.body?.classList.contains('builder-page') ? 'builder' : document.body?.classList.contains('receiver-page') ? 'receiver' : 'home';
+const designBase = ['/opendesign', '/interface-design'].includes(document.body?.dataset.designBase) ? document.body.dataset.designBase : '';
 const bankById = new Map((BANKS || []).map((bank) => [bank.id, bank]));
 const bankOptions = (sourceOnly = false) => (BANKS || []).filter((bank) => !sourceOnly || bank.allowAsSource !== false).map((bank) => `<option value="${escapeHtml(bank.id)}">${escapeHtml(bank.name)}</option>`).join('');
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
@@ -22,11 +23,6 @@ const show = (node) => { if (node) node.hidden = false; };
 const hide = (node) => { if (node) node.hidden = true; };
 const setText = (node, text) => { if (node) node.textContent = text; };
 const formatAmount = (value) => String(value || '').replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-const bankLogo = (id, name = '') => {
-  const bank = bankById.get(id);
-  if (!bank) return '';
-  return `<img src="${escapeHtml(bank.icon || `/assets/banks/${bank.id}.png`)}" alt="" width="32" height="32" loading="lazy"><span>${escapeHtml(name || bank.name)}</span>`;
-};
 const announce = (node, text, isError = false) => { if (!node) return; node.textContent = text; node.classList.toggle('is-error', isError); node.hidden = !text; };
 
 async function drawQr(canvas, value, size = 320) {
@@ -47,25 +43,12 @@ function initCounts() {
 
 
 const emptyMethod = () => ({ kind: 'qr', label: '', value: '', bankId: '' });
-let methodId = 0;
-const methodTemplate = (method, index) => {
-  const id = ++methodId;
-  const kind = method.kind === 'account' || method.kind === 'phone' ? method.kind : 'qr';
-  const label = kind === 'qr' ? 'QR-код' : kind === 'account' ? 'Счёт' : 'Телефон';
-  return `<article class="method-row" data-method-id="${id}">
-    <div class="method-row-head"><div class="method-row-title"><span class="method-number">${index + 1}</span><span>${label}</span></div><button class="remove-method" type="button" aria-label="Удалить способ">×</button></div>
-    <div class="method-fields">
-      <div class="field"><span>Тип</span><div class="type-toggle" role="radiogroup" aria-label="Тип реквизита">
-        <label><input type="radio" name="kind-${id}" value="qr" ${kind === 'qr' ? 'checked' : ''}>QR</label>
-        <label><input type="radio" name="kind-${id}" value="account" ${kind === 'account' ? 'checked' : ''}>Счёт</label>
-        <label><input type="radio" name="kind-${id}" value="phone" ${kind === 'phone' ? 'checked' : ''}>Телефон</label>
-      </div></div>
-      <label class="field"><span>Название <b>необязательно</b></span><input class="method-label" type="text" maxlength="80" value="${escapeHtml(method.label)}" placeholder="Например, Bakai QR"></label>
-      <label class="field method-value-field"><span class="method-value-label">QR или ссылка</span><textarea class="method-value" rows="3" maxlength="3000" placeholder="Вставьте QR-текст или ссылку">${escapeHtml(method.value)}</textarea><div class="method-value-tools"><button class="upload-qr" type="button">Загрузить фото QR</button><small class="method-status" aria-live="polite"></small></div></label>
-      <label class="field bank-field"><span>Банк <b>необязательно</b></span><div class="bank-choice"><img class="bank-preview" alt="" hidden><select class="method-bank"><option value="">Не указан</option>${bankOptions()}</select></div></label>
-    </div>
-  </article>`;
-};
+const methodTemplate = (method, index) => `<article class="method-row" data-bank-id="${escapeHtml(method.bankId)}">
+  <div class="method-row-head"><div class="method-row-title"><img class="bank-preview" alt="" width="28" height="28" hidden><span class="method-number">QR ${index + 1}</span></div><button class="remove-method" type="button" aria-label="Удалить QR ${index + 1}">×</button></div>
+  <button class="upload-qr" type="button"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 8h8v8H8z"/></svg><span>Выбрать фото QR</span></button>
+  <label class="field method-value-field"><span>Или вставьте ссылку / текст QR</span><textarea class="method-value" rows="2" maxlength="3000" placeholder="https://…">${escapeHtml(method.value)}</textarea></label>
+  <div class="method-meta"><label class="field"><span>Название QR</span><input class="method-label" type="text" maxlength="80" value="${escapeHtml(method.label)}" placeholder="Например, личный"></label><p class="method-status" role="status" aria-live="polite"></p></div>
+</article>`;
 
 function initBuilder() {
   const form = $('#payment-form');
@@ -84,42 +67,29 @@ function initBuilder() {
     list.innerHTML = methods.map(methodTemplate).join('');
     methods.forEach((method, index) => {
       const row = list.children[index];
-      $('.method-bank', row).value = method.bankId || '';
-      updateMethodMode(row, method.kind);
       if (method.value) validateMethod(row, method.value, false);
       updateBankLogo(row);
     });
   };
   const collectMethods = () => [...list.children].map((row) => ({
-    kind: $('.type-toggle input:checked', row)?.value || 'qr',
+    kind: 'qr',
     label: $('.method-label', row)?.value.trim() || '',
     value: $('.method-value', row)?.value.trim() || '',
-    bankId: $('.method-bank', row)?.value || '',
+    bankId: row.dataset.bankId || '',
   }));
   const sync = () => { methods = collectMethods(); };
-  const updateMethodMode = (row, kind) => {
-    const valueLabel = $('.method-value-label', row);
-    const value = $('.method-value', row);
-    const bankField = $('.bank-field', row);
-    if (kind === 'qr') { valueLabel.textContent = 'QR или ссылка'; value.placeholder = 'Вставьте QR-текст или ссылку'; }
-    if (kind === 'account') { valueLabel.textContent = 'Номер счёта'; value.placeholder = 'Введите номер счёта'; }
-    if (kind === 'phone') { valueLabel.textContent = 'Номер телефона'; value.placeholder = '+996 555 000 000'; }
-    bankField.hidden = kind === 'qr';
-    const uploadButton = $('.upload-qr', row);
-    if (uploadButton) uploadButton.hidden = kind !== 'qr';
-    if (kind !== 'qr') $('.method-bank', row).value = $('.method-bank', row).value || '';
-  };
   const validateMethod = async (row, value, announceResult = true) => {
-    const kind = $('.type-toggle input:checked', row)?.value || 'qr';
-    if (kind !== 'qr' || !value) return;
+    row.dataset.bankId = '';
+    updateBankLogo(row);
+    if (!value) { announce($('.method-status', row), ''); return; }
     const status = $('.method-status', row);
     const currentValue = value;
-    status.textContent = 'Проверяем QR…';
+    announce(status, 'Проверяем QR…');
     try {
       const inspected = await inspectQr(value);
       if ($('.method-value', row)?.value.trim() !== currentValue) return;
-      if (inspected?.bankId && bankById.has(inspected.bankId)) { $('.method-bank', row).value = inspected.bankId; updateBankLogo(row); }
-      status.textContent = `${inspected.name || bankById.get(inspected.bankId)?.name || 'QR'} · реквизит распознан`;
+      if (inspected?.bankId && bankById.has(inspected.bankId)) { row.dataset.bankId = inspected.bankId; updateBankLogo(row); }
+      status.textContent = inspected.name || bankById.get(inspected.bankId)?.name || 'QR распознан';
       status.classList.remove('is-error');
     } catch (error) {
       if ($('.method-value', row)?.value.trim() !== currentValue) return;
@@ -128,7 +98,7 @@ function initBuilder() {
     }
   };
   const updateBankLogo = (row) => {
-    const id = $('.method-bank', row)?.value;
+    const id = row.dataset.bankId;
     const image = $('.bank-preview', row);
     const bank = bankById.get(id);
     if (!bank) { hide(image); return; }
@@ -138,19 +108,14 @@ function initBuilder() {
     const row = event.target.closest('.method-row'); if (!row) return;
     if (event.target.classList.contains('method-value')) window.clearTimeout(row._inspectTimer), row._inspectTimer = window.setTimeout(() => validateMethod(row, event.target.value.trim()), 320);
   });
-  list.addEventListener('change', (event) => {
-    const row = event.target.closest('.method-row'); if (!row) return;
-    if (event.target.matches('.method-bank')) updateBankLogo(row);
-    if (event.target.matches('.type-toggle input')) { updateMethodMode(row, event.target.value); validateMethod(row, $('.method-value', row).value.trim()); }
-  });
   list.addEventListener('click', (event) => {
     if (!event.target.closest('.remove-method')) return;
     const row = event.target.closest('.method-row');
-    if (list.children.length === 1) { announce($('#methods-error'), 'Нужен хотя бы один способ оплаты.'); return; }
+    if (list.children.length === 1) { announce($('#methods-error'), 'Нужен хотя бы один QR.'); return; }
     sync(); methods.splice([...list.children].indexOf(row), 1); renderMethods();
   });
   $('#add-method').addEventListener('click', () => {
-    sync(); if (methods.length >= 8) { announce($('#methods-error'), 'Можно добавить не больше 8 способов.'); return; }
+    sync(); if (methods.length >= 8) { announce($('#methods-error'), 'Можно добавить до 8 QR.'); return; }
     methods.push(emptyMethod()); renderMethods(); list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
   const decodeUpload = (file, row) => {
@@ -165,7 +130,7 @@ function initBuilder() {
         const context = canvas.getContext('2d', { willReadFrequently: true }); context.drawImage(image, 0, 0, canvas.width, canvas.height);
         const result = globalThis.jsQR(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height, { inversionAttempts: 'attemptBoth' });
         if (!result?.data) { announce($('.method-status', row), 'QR-код на фото не найден.', true); return; }
-        $('.method-value', row).value = result.data; $('.method-value', row).dispatchEvent(new Event('input', { bubbles: true })); announce($('.method-status', row), 'QR найден — проверьте реквизит.');
+        $('.method-value', row).value = result.data; $('.method-value', row).dispatchEvent(new Event('input', { bubbles: true })); announce($('.method-status', row), 'QR найден');
       }; image.onerror = () => announce($('.method-status', row), 'Не удалось открыть изображение.', true); image.src = reader.result;
     }; reader.readAsDataURL(file);
   };
@@ -185,13 +150,13 @@ function initBuilder() {
     try {
       const normalized = normalizePage(page);
       for (const method of normalized.methods) {
-        if (method.kind !== 'qr') continue;
         const inspected = await inspectQr(method.value);
+        if (bankById.has(inspected.bankId)) method.bankId = inspected.bankId;
         if (inspected.kind === 'sbp' && normalized.amount) throw new Error('Для СБП сумма задаётся в исходном банковском QR; оставьте сумму страницы пустой.');
         await paymentTarget(method.value, normalized.amount, '');
       }
-      const encoded = encodePage(normalized); const fragment = `#p=${encoded}`; const url = `${location.origin}/pay.html${fragment}`;
-      $('#published-url').textContent = url; $('#open-link').href = `/pay.html${fragment}`; show($('#success-panel')); hide(form); window.scrollTo({ top: 0, behavior: 'smooth' });
+      const encoded = encodePage(normalized); const path = `${designBase}/pay.html#p=${encoded}`; const url = `${location.origin}${path}`;
+      $('#published-url').textContent = url; $('#open-link').href = path; show($('#success-panel')); hide(form); window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) { announce(status, error.message || 'Проверьте данные и попробуйте снова.', true); }
   });
   renderMethods(); initCounts();
@@ -207,10 +172,10 @@ function initReceiver() {
   let page;
   try { page = decodePage(location.hash); } catch (error) { show($('#invalid-state')); setText($('#invalid-message'), error.message || 'Ссылка неполная или данные повреждены.'); return; }
   show(pagePanel);
-  setText($('#receiver-title'), page.title || 'Страница оплаты');
+  setText($('#receiver-title'), page.title || 'Оплата по QR');
   if (page.note) { setText($('#receiver-note'), page.note); show($('#receiver-note')); }
   if (page.amount) { setText($('#receiver-amount'), formatAmount(page.amount)); show($('#amount-band')); }
-  setText($('#method-count'), `${page.methods.length} ${page.methods.length === 1 ? 'способ' : 'способа'}`);
+  setText($('#method-count'), `${page.methods.length} QR`);
   const methodList = $('#receiver-methods'); const selected = { index: 0, inspected: null, target: null }; let inspectToken = 0;
   const handoff = $('#open-bank');
   let handoffToken = 0;
@@ -224,7 +189,7 @@ function initReceiver() {
     const token = handoffToken;
     const inspected = selected.inspected;
     const method = page.methods[selected.index];
-    if (!inspected || method.kind !== 'qr') return;
+    if (!inspected) return;
     const source = inspected.kind === 'sbp' ? '' : $('#from-bank').value;
     if (inspected.kind !== 'sbp' && !source) return;
     try {
@@ -242,7 +207,7 @@ function initReceiver() {
     if (!select.options.length) select.innerHTML = '<option value="">Выберите банк</option>' + bankOptions(true);
     if (logos.childElementCount) return;
     (BANKS || []).filter((bank) => bank.allowAsSource !== false).forEach((bank) => {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'source-bank-logo'; button.dataset.bankId = bank.id; button.title = bank.name; button.innerHTML = `<img src="${escapeHtml(bank.icon)}" alt="${escapeHtml(bank.name)}" width="32" height="32">`;
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'source-bank-logo'; button.dataset.bankId = bank.id; button.setAttribute('aria-pressed', 'false'); button.innerHTML = `<img src="${escapeHtml(bank.icon)}" alt="" width="32" height="32"><span>${escapeHtml(bank.name)}</span>`;
       button.addEventListener('click', () => { select.value = bank.id; select.dispatchEvent(new Event('change')); });
       logos.append(button);
     });
@@ -252,7 +217,7 @@ function initReceiver() {
     const row = document.createElement('button');
     row.type = 'button'; row.className = 'receiver-method';
     row.setAttribute('aria-pressed', index === 0 ? 'true' : 'false');
-    row.innerHTML = `<span class="method-radio" aria-hidden="true"></span><span class="receiver-method-info"><strong>${escapeHtml(method.label || (method.kind === 'qr' ? 'QR-код' : method.kind === 'account' ? 'Счёт' : 'Телефон'))}</strong><small>${escapeHtml(method.value)}</small></span><span class="receiver-method-bank">${bankLogo(method.bankId, bank?.name || '')}</span>`;
+    row.innerHTML = `<span class="receiver-method-bank">${bank ? `<img src="${escapeHtml(bank.icon)}" alt="" width="32" height="32">` : 'QR'}</span><span class="receiver-method-info"><strong>${escapeHtml(method.label || `QR ${index + 1}`)}</strong><small>${escapeHtml(bank?.name || 'QR получателя')}</small></span><span class="method-radio" aria-hidden="true"></span>`;
     row.addEventListener('click', () => {
       selected.index = index;
       $$('.receiver-method', methodList).forEach((other, i) => other.setAttribute('aria-pressed', i === index ? 'true' : 'false'));
@@ -261,15 +226,13 @@ function initReceiver() {
     methodList.append(row);
   });
   const renderSelected = async () => {
-    const method = page.methods[selected.index]; const token = ++inspectToken; const canvas = $('#payment-qr'); const placeholder = $('#qr-placeholder'); const valueNode = $('#preview-value'); const bankName = $('#selected-bank-name'); const picker = $('#bank-picker'); const receiverError = $('#receiver-error');
+    const method = page.methods[selected.index]; const token = ++inspectToken; const canvas = $('#payment-qr'); const placeholder = $('#qr-placeholder'); const bankName = $('#selected-bank-name'); const picker = $('#bank-picker'); const receiverError = $('#receiver-error');
     hide(receiverError); hide($('#payment-notice')); selected.inspected = null; selected.target = null;
     clearHandoff(); hide(canvas);
     setText($('#amount-label'), 'Запрошено');
     setText($('#receiver-amount'), formatAmount(page.amount));
     $('#amount-band').hidden = !page.amount;
-    setText($('#preview-heading'), method.kind === 'qr' ? 'QR для оплаты' : 'Реквизит для перевода');
-    setText(bankName, bankById.get(method.bankId)?.name || ''); hide(valueNode); hide(picker); hide($('#download-qr')); hide($('#copy-value')); show(placeholder); setText(placeholder, method.kind === 'qr' ? 'Готовим QR…' : '');
-    if (method.kind !== 'qr') { hide(canvas); setText(placeholder, method.kind === 'account' ? 'Счёт — скопируйте реквизит ниже' : 'Телефон — скопируйте реквизит ниже'); setText(valueNode, method.value); show(valueNode); show($('#copy-value')); return; }
+    setText(bankName, bankById.get(method.bankId)?.name || ''); hide(picker); hide($('#download-qr')); show(placeholder); setText(placeholder, 'Готовим QR…');
     try {
       const inspected = await inspectQr(method.value);
       if (inspected.kind === 'sbp' && page.amount) throw new Error('Для СБП сумма задаётся в исходном банковском QR; сумма страницы должна быть пустой.');
@@ -282,17 +245,16 @@ function initReceiver() {
       $('#amount-band').hidden = !displayedAmount;
       await drawQr(canvas, target.qrText); if (token !== inspectToken) return;
       hide(placeholder); show(canvas); show($('#download-qr')); show(picker);
-      picker.classList.toggle('direct', inspected.kind === 'sbp'); $('#open-bank').textContent = inspected.kind === 'sbp' ? 'Открыть ссылку ↗' : 'Открыть оплату ↗';
+      picker.classList.toggle('direct', inspected.kind === 'sbp'); $('#open-bank').textContent = inspected.kind === 'sbp' ? 'Открыть ссылку ↗' : 'Открыть банк ↗';
       if (inspected.kind === 'sbp') hide($('#source-bank-logos')); else { show($('#source-bank-logos')); populateFromBanks(); }
       if (target.notice) { setText($('#payment-notice'), target.notice); show($('#payment-notice')); }
       prepareHandoff();
     } catch (error) { if (token !== inspectToken) return; hide(canvas); setText(placeholder, 'Этот QR нельзя показать безопасно.'); announce(receiverError, error.message || 'Реквизит не распознан.', true); }
   };
   $('#from-bank').addEventListener('change', () => {
-    $$('.source-bank-logo').forEach((item) => item.classList.toggle('is-selected', item.dataset.bankId === $('#from-bank').value));
+    $$('.source-bank-logo').forEach((item) => { const active = item.dataset.bankId === $('#from-bank').value; item.classList.toggle('is-selected', active); item.setAttribute('aria-pressed', String(active)); });
     prepareHandoff();
   });
-  $('#copy-value').addEventListener('click', () => copyText(page.methods[selected.index].value, $('#copy-value'), 'Скопировано'));
   $('#download-qr').addEventListener('click', () => { const canvas = $('#payment-qr'); if (!canvas?.toDataURL) return; const anchor = document.createElement('a'); anchor.download = 'qrbek-payment.png'; anchor.href = canvas.toDataURL('image/png'); anchor.click(); });
   handoff.addEventListener('click', (event) => {
     if (handoff.hasAttribute('href')) return;

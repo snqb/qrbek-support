@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>QRbek — Ссылка на оплату</title>
+  <link rel="icon" href="/assets/mark.png">
+  <link rel="stylesheet" href="./styles.css?v=20260921-compare1">
+</head>
+<body class="builder-page" data-design-base="/opendesign">
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <img src="/assets/mark.png" alt="QRbek" width="28" height="28">
+        <span class="logo-text">QRbek</span>
+      </a>
+      <nav class="header-nav">
+        <a href="/compare.html" class="header-link">Сравнить</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <h1>Ссылка на оплату</h1>
+      <p class="subtitle">Без регистрации</p>
+
+      <form id="payment-form" novalidate>
+        <div id="methods-list"></div>
+
+        <button id="add-method" type="button" class="button button-outline">Ещё QR</button>
+
+        <div id="methods-error" role="alert" hidden></div>
+
+        <div class="optional-fields">
+          <label class="field">
+            <span>Имя или название</span>
+            <input id="page-title" type="text" maxlength="80">
+          </label>
+
+          <label class="field">
+            <span>Сумма, сом</span>
+            <input id="page-amount" type="text" inputmode="decimal" placeholder="Любая">
+          </label>
+
+          <details class="comment-toggle">
+            <summary>Комментарий</summary>
+            <label class="field">
+              <span>Комментарий</span>
+              <textarea id="page-note" maxlength="240"></textarea>
+            </label>
+          </details>
+        </div>
+
+        <div id="form-status" role="status" aria-live="polite" hidden></div>
+
+        <div class="form-actions">
+          <button type="submit" class="button button-primary">Создать ссылку</button>
+          <div class="form-secondary-actions">
+            <button id="reset-form" type="button">Очистить</button>
+          </div>
+        </div>
+      </form>
+
+      <p class="disclosure">Данные видны всем, у кого есть ссылка. Отозвать её нельзя. <a href="/privacy.html">Конфиденциальность</a></p>
+
+      <section id="success-panel" hidden>
+        <h2>Ссылка готова</h2>
+        <div class="url-display">
+          <code id="published-url"></code>
+        </div>
+        <div role="status" aria-live="polite"></div>
+        <div class="success-actions">
+          <button id="copy-link" type="button" class="button button-secondary">Копировать</button>
+          <a id="open-link" class="button button-outline" target="_blank" rel="noopener">Открыть</a>
+          <button id="share-link" type="button" class="button button-primary">Поделиться</button>
+        </div>
+        <button id="create-again" type="button">Изменить</button>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="/privacy.html">Конфиденциальность</a>
+      <a href="/support.html">Поддержка</a>
+    </div>
+  </footer>
+
+  <script src="/vendor/jsqr.js"></script>
+  <script src="/app.js?v=20260921-compare1" type="module"></script>
+</body>
+</html>

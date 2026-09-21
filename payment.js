@@ -91,7 +91,7 @@ export function normalizePage(input) {
   if (input.currency !== "KGS") error("поддерживается только валюта KGS");
   const amount = normalizeAmount(input.amount);
   if (!Array.isArray(input.methods) || input.methods.length < 1 || input.methods.length > 8) {
-    error("нужно указать от 1 до 8 способов оплаты");
+    error("добавьте от 1 до 8 QR");
   }
   const seenMethods = new Set();
   const methods = input.methods.map((method, index) => {
@@ -99,7 +99,7 @@ export function normalizePage(input) {
     const methodFields = ["kind", "label", "value", "bankId"];
     const extra = Object.keys(method).filter((key) => !methodFields.includes(key));
     if (extra.length) error(`способ оплаты ${index + 1}: неизвестное поле ${extra[0]}`);
-    if (typeof method.kind !== "string" || !/^(qr|account|phone)$/.test(method.kind)) error(`способ оплаты ${index + 1}: неизвестный вид`);
+    if (method.kind !== "qr") error(`способ оплаты ${index + 1}: поддерживаются только QR`);
     if (typeof method.label !== "string" || codePointCount(method.label) > 80) error(`способ оплаты ${index + 1}: название до 80 символов`);
     if (typeof method.value !== "string" || method.value.trim() === "" || utf8Size(method.value) > 3000) error(`способ оплаты ${index + 1}: непустое значение до 3000 байт`);
     if (typeof method.bankId !== "string" || (method.bankId !== "" && !bankById.has(method.bankId))) {

@@ -8,35 +8,34 @@
   <meta name="theme-color" content="#0c1711">
   <meta name="description" content="Страница оплаты QRbek.">
   <title>Оплата · QRbek</title>
-  <link rel="stylesheet" href="/styles.css?v=20260921">
+  <link rel="stylesheet" href="/styles.css?v=20260921-compare1">
 </head>
 <body class="receiver-page">
   <header class="site-header page-shell"><a class="brand" href="/index.html" aria-label="QRbek, на главную"><img src="/assets/mark.png" alt="" width="36" height="36"><span>QRbek</span></a><a class="header-back" href="/create.html">Создать свою ссылку <span aria-hidden="true">↗</span></a></header>
   <main class="receiver-shell page-shell">
-    <section id="invalid-state" class="state-panel" hidden aria-labelledby="invalid-title"><div class="state-symbol state-symbol-error" aria-hidden="true">!</div><p class="eyebrow">Ссылка QRbek</p><h1 id="invalid-title">Не удалось открыть<br>эту страницу.</h1><p id="invalid-message">Ссылка неполная или данные повреждены. Попросите отправителя создать новую.</p><a class="button button-primary" href="/create.html">Создать свою ссылку <span aria-hidden="true">↗</span></a></section>
+    <section id="invalid-state" class="state-panel" hidden aria-labelledby="invalid-title"><h1 id="invalid-title">Ссылка не открывается</h1><p id="invalid-message"></p><a class="button button-primary" href="/create.html">Создать ссылку</a></section>
     <section id="payment-page" hidden aria-labelledby="receiver-title">
       <div class="receiver-intro"><p class="eyebrow">Страница оплаты · QRbek</p><h1 id="receiver-title"></h1><p id="receiver-note" class="receiver-note" hidden></p></div>
       <div class="amount-band" id="amount-band" hidden><span id="amount-label">Запрошено</span><strong id="receiver-amount"></strong><small>сом</small></div>
       <div class="receiver-layout">
-        <section class="receipt-panel" aria-labelledby="method-heading"><div class="receipt-panel-head"><div><p class="eyebrow">Реквизиты</p><h2 id="method-heading">Выберите способ</h2></div><span id="method-count" class="muted-count"></span></div><div id="receiver-methods" class="receiver-methods" role="group" aria-labelledby="method-heading"></div><p id="receiver-error" class="form-error" role="alert" hidden></p></section>
+        <section class="receipt-panel" aria-labelledby="method-heading"><div class="receipt-panel-head"><h2 id="method-heading">QR получателя</h2><span id="method-count" class="muted-count"></span></div><div id="receiver-methods" class="receiver-methods" role="group" aria-labelledby="method-heading"></div><p id="receiver-error" class="form-error" role="alert" hidden></p></section>
         <section class="payment-preview" aria-labelledby="preview-heading">
           <div class="preview-label"><span class="eyebrow" id="preview-heading">QR для оплаты</span><span id="selected-bank-name" class="preview-bank"></span></div>
-          <div class="qr-frame"><canvas id="payment-qr" width="320" height="320" aria-label="QR-код для оплаты"></canvas><div id="qr-placeholder" class="qr-placeholder" hidden>Выберите QR-способ</div></div>
-          <p id="preview-value" class="preview-value" hidden></p>
-          <div class="preview-actions"><button id="download-qr" class="button button-outline" type="button">Скачать QR</button><button id="copy-value" class="button button-outline" type="button">Скопировать реквизит</button></div>
+          <div class="qr-frame"><canvas id="payment-qr" width="320" height="320" aria-label="QR-код для оплаты" hidden></canvas><div id="qr-placeholder" class="qr-placeholder">Готовим QR…</div></div>
+          <div class="preview-actions"><button id="download-qr" class="button button-outline" type="button">Скачать QR</button></div>
           <div id="bank-picker" class="bank-picker" hidden>
-            <label for="from-bank">Открыть через</label><select id="from-bank"></select>
+            <label for="from-bank">Ваш банк</label><details><summary>Все банки</summary><select id="from-bank"></select></details>
             <div id="source-bank-logos" class="source-bank-logos" aria-label="Банк отправителя"></div>
             <a id="open-bank" class="button button-primary" role="link" tabindex="0" aria-disabled="true" rel="noopener">Открыть оплату <span aria-hidden="true">↗</span></a>
           </div>
           <p id="payment-notice" class="inline-notice" role="status" hidden></p>
         </section>
       </div>
-      <aside class="disclosure disclosure-receiver"><span class="disclosure-mark" aria-hidden="true">i</span><p>Проверьте получателя и сумму в банковском приложении. QRbek только передаёт вас к реквизиту — подтверждение платежа возможно только в банке.</p></aside>
+      <p class="disclosure disclosure-receiver">Проверьте получателя и сумму в банке.</p>
     </section>
   </main>
   <footer class="site-footer page-shell"><a class="brand brand-small" href="/index.html"><img src="/assets/mark.png" alt="" width="28" height="28"><span>QRbek</span></a><div class="footer-links"><a href="mailto:s7b5en@gmail.com">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></div><span class="footer-note">Не подтверждает факт оплаты</span></footer>
   <script src="/vendor/qrcode.js"></script>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="/app.js?v=20260921-compare1"></script>
 </body>
 </html>

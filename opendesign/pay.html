@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>QRbek — Оплата</title>
+  <link rel="icon" href="/assets/mark.png">
+  <link rel="stylesheet" href="./styles.css?v=20260921-compare1">
+</head>
+<body class="receiver-page" data-design-base="/opendesign">
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <img src="/assets/mark.png" alt="QRbek" width="28" height="28">
+        <span class="logo-text">QRbek</span>
+      </a>
+      <nav class="header-nav">
+        <a href="./index.html" class="header-link">Создать ссылку</a>
+        <a href="/compare.html" class="header-link">Сравнить</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <section id="invalid-state" hidden>
+        <h1>Ссылка не открывается</h1>
+        <p id="invalid-message"></p>
+        <a href="./index.html" class="button button-primary">Создать ссылку</a>
+      </section>
+
+      <section id="payment-page" hidden>
+        <h1 id="receiver-title"></h1>
+        <p id="receiver-note" hidden></p>
+
+        <div id="amount-band" hidden>
+          <span id="amount-label">К оплате</span>
+          <strong id="receiver-amount"></strong>
+          <span class="currency-label">сом</span>
+        </div>
+
+        <div id="receiver-methods" role="group" aria-label="QR получателя"></div>
+        <div id="method-count"></div>
+        <div id="receiver-error" role="alert" hidden></div>
+
+        <div class="qr-frame">
+          <canvas id="payment-qr" width="320" height="320" aria-label="QR для оплаты"></canvas>
+          <span id="qr-placeholder">Готовим QR…</span>
+          <span id="selected-bank-name"></span>
+          <button id="download-qr" type="button">Скачать QR</button>
+        </div>
+
+        <div id="bank-picker" class="bank-picker" hidden>
+          <label for="from-bank">Ваш банк</label>
+          <details><summary>Все банки</summary><select id="from-bank"></select></details>
+          <div id="source-bank-logos"></div>
+          <a id="open-bank" class="button button-primary" aria-disabled="true" tabindex="0" role="link">Открыть банк</a>
+        </div>
+
+        <div id="payment-notice" role="status" hidden></div>
+
+        <p class="receiver-disclosure">Проверьте получателя и сумму в банке.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="/privacy.html">Конфиденциальность</a>
+      <a href="/support.html">Поддержка</a>
+    </div>
+  </footer>
+
+  <script src="/vendor/qrcode.js"></script>
+  <script src="/app.js?v=20260921-compare1" type="module"></script>
+</body>
+</html>
