@@ -5,7 +5,7 @@ import {
   inspectQr,
   normalizePage,
   paymentTarget,
-} from "./payment.js?v=20260921-zero-amount1";
+} from "./payment.js?v=20260922-amount2";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -104,6 +104,7 @@ function initBuilder() {
   $(".metadata-details").open = matchMedia("(min-width: 960px)").matches ||
     Boolean(draft?.title || draft?.amount || draft?.note);
   const renderMethods = () => {
+    announce($("#methods-error"), "");
     list.innerHTML = methods.map(methodTemplate).join("");
     methods.forEach((method, index) => {
       const row = list.children[index];
@@ -358,6 +359,8 @@ function initBuilder() {
   renderMethods();
 }
 
+const copyFeedback = new WeakMap();
+
 async function copyText(text, feedbackNode, feedback = "Скопировано") {
   try {
     await navigator.clipboard.writeText(text);
@@ -370,11 +373,15 @@ async function copyText(text, feedbackNode, feedback = "Скопировано")
     area.remove();
   }
   if (feedbackNode) {
-    const original = feedbackNode.textContent;
+    const previous = copyFeedback.get(feedbackNode);
+    const original = previous?.original ?? feedbackNode.textContent;
+    if (previous) clearTimeout(previous.timer);
     feedbackNode.textContent = feedback;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       feedbackNode.textContent = original;
+      copyFeedback.delete(feedbackNode);
     }, 1600);
+    copyFeedback.set(feedbackNode, { original, timer });
   }
 }
 
