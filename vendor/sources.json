@@ -1,0 +1,4 @@
+{
+  "qrcode": {"version":"1.5.4","source":"https://registry.npmjs.org/qrcode/-/qrcode-1.5.4.tgz","license":"MIT","entry":"qrcode/lib/browser.js","bundleTool":"esbuild@0.25.10","global":"QRCode"},
+  "jsqr": {"version":"1.4.0","source":"https://registry.npmjs.org/jsqr/-/jsqr-1.4.0.tgz","license":"Apache-2.0","entry":"dist/jsQR.js","global":"jsQR"}
+}

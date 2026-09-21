@@ -2,45 +2,71 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="description" content="Поддержка QRbek — адресной книги для ELQR-кодов Кыргызстана.">
-  <title>QRbek — поддержка</title>
-  <style>
-    :root{color-scheme:dark;--bg:#061009;--surface:#102418;--line:#23452f;--text:#f4f7f4;--muted:#a9b8ad;--accent:#72c45d;--accent2:#22c55e}
-    *{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100vh;background:radial-gradient(circle at 82% 0,#173e25 0,transparent 32rem),var(--bg);color:var(--text);font:16px/1.65 ui-rounded,"SF Pro Rounded","Segoe UI",sans-serif}
-    main{width:min(760px,calc(100% - 40px));margin:auto;padding:72px 0 64px}.mark{display:inline-grid;place-items:center;width:48px;height:48px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#163823,#0b1e12);color:var(--accent);font-weight:900;letter-spacing:-2px}
-    h1{margin:24px 0 4px;font-size:clamp(44px,10vw,72px);line-height:1;letter-spacing:-.055em}h1 span{color:var(--accent)}.lead{max-width:620px;margin:18px 0 40px;color:var(--muted);font-size:clamp(18px,3.4vw,23px);line-height:1.45}
-    .actions{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:56px}a.button{display:inline-flex;align-items:center;min-height:48px;padding:0 20px;border-radius:14px;text-decoration:none;font-weight:800}a.primary{background:var(--accent);color:#081108}a.secondary{border:1px solid var(--line);color:var(--text);background:#0b1b10}
-    section{padding:28px 0;border-top:1px solid var(--line)}h2{margin:0 0 16px;font-size:22px;letter-spacing:-.02em}.item{display:grid;grid-template-columns:36px 1fr;gap:12px;margin:16px 0}.n{color:var(--accent);font-weight:900}.item strong{display:block;margin-bottom:2px}.item p{margin:0;color:var(--muted)}
-    footer{display:flex;justify-content:space-between;gap:20px;padding-top:28px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}footer a{color:var(--accent)}
-    @media(max-width:520px){main{padding-top:42px}.actions{display:grid}.button{justify-content:center}footer{display:grid}}
-  </style>
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1711">
+  <meta name="description" content="QRbek — отправьте ссылку, чтобы вам могли заплатить без регистрации.">
+  <title>QRbek — получить оплату</title>
+  <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
-<main>
-  <div class="mark" aria-hidden="true">QR</div>
-  <h1>QR<span>bek</span></h1>
-  <p class="lead">Адресная книга для ELQR-кодов Кыргызстана. Сохраняйте получателей, находите куары в галерее и открывайте оплату в выбранном банковском приложении.</p>
-  <div class="actions">
-    <a class="button primary" href="mailto:s7b5en@gmail.com?subject=QRbek%20support">Написать в поддержку</a>
-    <a class="button secondary" href="privacy.html">Политика конфиденциальности</a>
-  </div>
+<body class="site-home">
+  <header class="site-header page-shell">
+    <a class="brand" href="/index.html" aria-label="QRbek, на главную">
+      <img src="/assets/mark.png" alt="" width="36" height="36">
+      <span>QRbek</span>
+    </a>
+    <nav class="header-nav" aria-label="Основная навигация">
+      <a href="/create.html">Создать ссылку</a>
+      <a href="/support.html">О приложении</a>
+    </nav>
+  </header>
 
-  <section>
-    <h2>Частые вопросы</h2>
-    <div class="item"><div class="n">01</div><div><strong>Где хранятся мои данные?</strong><p>Контакты QRbek, сохранённые куары и результаты импорта остаются на вашем устройстве. У приложения нет аккаунта и облачной синхронизации.</p></div></div>
-    <div class="item"><div class="n">02</div><div><strong>Загружает ли QRbek фотографии?</strong><p>Нет. Галерея сканируется локально на телефоне. Проверенные снимки запоминаются в локальном кэше и не сканируются заново без необходимости.</p></div></div>
-    <div class="item"><div class="n">03</div><div><strong>Почему нужен доступ к контактам?</strong><p>Только чтобы показывать знакомые имена вместо номеров. Разрешение необязательно; данные адресной книги не отправляются разработчику.</p></div></div>
-    <div class="item"><div class="n">04</div><div><strong>QRbek проводит платежи?</strong><p>Нет. QRbek подготавливает ссылку и открывает выбранное банковское приложение. Сумму и получателя вы проверяете и подтверждаете уже в банке.</p></div></div>
-    <div class="item"><div class="n">05</div><div><strong>Как удалить данные?</strong><p>Удалите отдельные записи внутри приложения или сбросьте данные в настройках QRbek. Удаление приложения также удаляет локальное хранилище.</p></div></div>
-  </section>
+  <main>
+    <section class="home-hero page-shell" aria-labelledby="home-title">
+      <div class="hero-copy">
+        <p class="eyebrow">QRbek · простая оплата</p>
+        <h1 id="home-title">Одна ссылка.<br><em>Ваши банки.</em></h1>
+        <p class="hero-lede">Соберите страницу с вашими QR и реквизитами. Отправьте её в чате — получатель сам выберет удобный способ оплаты.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="/create.html">Создать страницу оплаты <span aria-hidden="true">↗</span></a>
+          <a class="quiet-link" href="/index.html#how">Как это работает</a>
+        </div>
+      </div>
+      <div class="hero-receipt" aria-label="Конструктор страницы оплаты">
+        <div class="receipt-slip">
+          <div class="receipt-topline"><span>QRbek / СОЗДАТЬ</span><span>01</span></div>
+          <div class="receipt-person"><span class="receipt-avatar">+</span><div><strong>Ваша страница</strong><small>соберите реквизиты</small></div></div>
+          <div class="receipt-amount">QR <small>+ реквизиты</small></div>
+          <div class="receipt-rule"></div>
+          <img class="receipt-qr-image" src="/assets/create-qr.png" alt="Открыть конструктор QRbek" width="216" height="216">
+          <div class="receipt-bank-row" aria-label="Поддерживаемые банки"><img src="/assets/banks/mbank.png" alt=""><img src="/assets/banks/bakai.png" alt=""><img src="/assets/banks/optima.png" alt=""><img src="/assets/banks/demir.png" alt=""></div>
+          <div class="receipt-footer"><span>Откройте конструктор</span><span>QRbek</span></div>
+        </div>
+        <p class="receipt-caption">Без регистрации.<br>Оплата — в вашем банке.</p>
+      </div>
+    </section>
 
-  <section lang="en">
-    <h2>Support in English</h2>
-    <p style="color:var(--muted);margin:0">QRbek stores its address book and scan results locally, does not upload photos, and never completes payments itself. For help, email <a style="color:var(--accent)" href="mailto:s7b5en@gmail.com">s7b5en@gmail.com</a>.</p>
-  </section>
+    <section class="home-principles page-shell" aria-labelledby="principles-title">
+      <div class="section-heading"><p class="eyebrow">Без лишнего</p><h2 id="principles-title">Всё важное —<br>на одном экране.</h2></div>
+      <div class="principles-list">
+        <article><span class="principle-number">01</span><div><h3>Без аккаунта</h3><p>Ссылка создаётся прямо в браузере. QRbek не хранит вашу страницу на сервере.</p></div></article>
+        <article><span class="principle-number">02</span><div><h3>Ваши банки</h3><p>Добавьте один или несколько QR, счёт или телефон. Получатель выберет свой способ.</p></div></article>
+        <article><span class="principle-number">03</span><div><h3>Сразу в банк</h3><p>Сумма применяется только при открытии оплаты. Сохранённый QR остаётся неизменным.</p></div></article>
+      </div>
+    </section>
 
-  <footer><span>QRbek · Kyrgyzstan</span><a href="mailto:s7b5en@gmail.com">s7b5en@gmail.com</a></footer>
-</main>
+    <section class="home-how page-shell" id="how" aria-labelledby="how-title">
+      <div class="how-intro"><p class="eyebrow">Три шага</p><h2 id="how-title">От QR до оплаты<br>за минуту.</h2></div>
+      <ol class="steps"><li><b>01</b><span>Добавьте реквизиты</span></li><li><b>02</b><span>Поделитесь ссылкой</span></li><li><b>03</b><span>Получатель платит из своего банка</span></li></ol>
+      <a class="button button-dark" href="/create.html">Создать свою ссылку <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+
+  <footer class="site-footer page-shell">
+    <a class="brand brand-small" href="/index.html"><img src="/assets/mark.png" alt="" width="28" height="28"><span>QRbek</span></a>
+    <div class="footer-links"><a href="https://play.google.com/store/apps/details?id=kg.qrbek.pay" rel="noopener">Google Play</a><a href="https://apps.apple.com/app/id6790023856" rel="noopener">App Store</a><a href="mailto:s7b5en@gmail.com">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></div>
+    <span class="footer-note">Сделано для Кыргызстана</span>
+  </footer>
 </body>
 </html>

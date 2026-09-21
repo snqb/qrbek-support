@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1711">
+  <meta name="description" content="Создайте личную страницу оплаты QRbek.">
+  <title>Создать страницу оплаты · QRbek</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="builder-page">
+  <header class="site-header page-shell">
+    <a class="brand" href="/index.html" aria-label="QRbek, на главную"><img src="/assets/mark.png" alt="" width="36" height="36"><span>QRbek</span></a>
+    <a class="header-back" href="/index.html"><span aria-hidden="true">←</span> На главную</a>
+  </header>
+  <main class="builder-shell page-shell">
+    <div class="page-intro"><p class="eyebrow">Новая ссылка</p><h1>Ваша страница<br><em>для оплаты.</em></h1><p>Добавьте способы оплаты — QRbek соберёт их в одну ссылку, которую можно отправить кому угодно.</p></div>
+    <form id="payment-form" novalidate>
+      <section class="form-section" aria-labelledby="details-heading">
+        <div class="form-section-head"><span class="section-index">01</span><div><h2 id="details-heading">О странице</h2><p>Эти данные увидит тот, кто откроет ссылку.</p></div></div>
+          <label class="field field-wide"><span>Заголовок <b>необязательно</b></span><input id="page-title" name="title" type="text" maxlength="80" autocomplete="name" placeholder="Например, Айдана Садыкова"><small class="field-count" data-count-for="page-title">0 / 80</small></label>
+          <label class="field"><span>Сумма, сом <b>необязательно</b></span><input id="page-amount" name="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00"><small>Можно оставить пустым — получатель введёт её в банке.</small></label>
+          <label class="field"><span>Комментарий <b>необязательно</b></span><input id="page-note" name="note" type="text" maxlength="240" placeholder="Например, за ужин"><small class="field-count" data-count-for="page-note">0 / 240</small></label>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="methods-heading">
+        <div class="form-section-head"><span class="section-index">02</span><div><h2 id="methods-heading">Способы оплаты</h2><p>Добавьте от одного до восьми. QRbek не меняет ваши реквизиты.</p></div></div>
+        <div id="methods-list" class="methods-list" aria-live="polite"></div>
+        <button class="button button-outline add-method" type="button" id="add-method"><span aria-hidden="true">＋</span> Добавить способ</button>
+        <p id="methods-error" class="form-error" role="alert" hidden></p>
+      </section>
+
+      <aside class="disclosure disclosure-builder"><span class="disclosure-mark" aria-hidden="true">i</span><p><strong>Перед публикацией</strong> Проверьте реквизиты. Любой, у кого есть ссылка, увидит указанные данные. Ссылка хранится только в ней самой: удалить или отозвать её удалённо нельзя.</p></aside>
+      <div id="form-status" class="form-status" role="status" aria-live="polite"></div>
+      <div class="builder-actions"><button class="button button-primary" type="submit">Создать ссылку <span aria-hidden="true">↗</span></button><button class="quiet-link" id="reset-form" type="button">Очистить форму</button></div>
+    </form>
+
+    <section id="success-panel" class="success-panel" hidden aria-labelledby="success-title">
+      <div class="success-mark" aria-hidden="true">✓</div><p class="eyebrow">Ссылка готова</p><h2 id="success-title">Можно отправлять.</h2><p>Страница собрана локально и уже доступна по ссылке. Сохраните её в заметках — изменить опубликованную ссылку нельзя.</p>
+      <div class="published-link"><code id="published-url"></code><button id="copy-link" class="icon-button" type="button" aria-label="Скопировать ссылку">▣</button></div>
+      <div class="success-actions"><a id="open-link" class="button button-primary" href="/pay.html">Открыть страницу <span aria-hidden="true">↗</span></a><button id="share-link" class="button button-outline" type="button">Поделиться</button></div>
+      <button id="create-again" class="quiet-link" type="button">Создать ещё одну</button>
+    </section>
+  </main>
+  <footer class="site-footer page-shell"><a class="brand brand-small" href="/index.html"><img src="/assets/mark.png" alt="" width="28" height="28"><span>QRbek</span></a><div class="footer-links"><a href="mailto:s7b5en@gmail.com">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></div><span class="footer-note">Данные остаются в ссылке</span></footer>
+  <script src="/vendor/jsqr.js"></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
