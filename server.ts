@@ -13,6 +13,7 @@ const NORMALIZED_PAGE_LIMIT = 20_000;
 const DEFAULT_RATE_WINDOW_MS = 60_000;
 const DEFAULT_RATE_LIMIT = 30;
 const DEFAULT_MAX_RECORDS = 10_000;
+const LEGACY_ORIGIN = new URL("https://qrbek.esen.works");
 const DEFAULT_DB_PATH = fileURLToPath(
   new URL("../qrbek-pages.sqlite3", import.meta.url),
 );
@@ -343,6 +344,7 @@ export const createHandler = (
     try {
       const url = new URL(request.url);
       const pathname = url.pathname;
+      const isLegacyHost = url.host === LEGACY_ORIGIN.host;
       if (pathname === "/health") {
         if (request.method !== "GET" && request.method !== "HEAD") {
           return methodNotAllowed("GET, HEAD");
@@ -352,8 +354,11 @@ export const createHandler = (
       if (pathname === "/api/pages") {
         if (request.method !== "POST") return methodNotAllowed("POST");
         const origin = request.headers.get("origin");
-        const expectedOrigin = publicOrigin ?? new URL(request.url).origin;
-        if (origin !== null && origin !== expectedOrigin) {
+        const expectedOrigin = publicOrigin ?? url.origin;
+        if (
+          origin !== null && origin !== expectedOrigin &&
+          !(isLegacyHost && origin === LEGACY_ORIGIN.origin)
+        ) {
           throw new HttpError(
             403,
             "origin_forbidden",
@@ -441,6 +446,22 @@ export const createHandler = (
           );
         }
         return jsonResponse(record.page);
+      }
+      // Redirect documents only: already-open legacy tabs still need their
+      // same-origin API and assets. Omitting a fragment preserves #p and #draft.
+      if (
+        publicOrigin && publicOrigin !== LEGACY_ORIGIN.origin && isLegacyHost &&
+        (request.method === "GET" || request.method === "HEAD") &&
+        (pathname.endsWith("/") || pathname.endsWith(".html") ||
+          pathname.startsWith("/p/"))
+      ) {
+        return new Response(null, {
+          status: 308,
+          headers: {
+            ...securityHeaders(),
+            Location: `${publicOrigin}${pathname}${url.search}`,
+          },
+        });
       }
       const pageId = readPageId(pathname, "/p/");
       if (pageId !== null) {
