@@ -54,13 +54,14 @@ if (test) {
     const createdBody = await created.json();
     assertEqual(createdBody.id, "demo-pay", "custom id");
     const fetched = await handler(
-      new Request("http://localhost/api/pages/demo-pay"),
+      new Request(`http://localhost${createdBody.path.replace("/p/", "/api/pages/")}`),
     );
     assertEqual(fetched.status, 200, "fetch status");
     const fetchedBody = await fetched.json();
     assertDeepEqual(fetchedBody, {
       ...input,
       methods: [{ ...input.methods[0], bankId: "bakai" }],
+      expiresAt: createdBody.expiresAt,
     }, "stored page");
     store.close();
   });
@@ -75,18 +76,16 @@ if (test) {
       store: competingStore,
       rateLimit: 100,
     });
-    assertEqual(
-      (await post(firstHandler, { page: page(), slug: "fixed-alias" })).status,
-      201,
-      "first create",
-    );
+    const firstResponse = await post(firstHandler, { page: page(), slug: "fixed-alias" });
+    assertEqual(firstResponse.status, 201, "first create");
+    const firstCreated = await firstResponse.json();
     const second = await post(competingHandler, {
       page: { ...page(), title: "Other page" },
       slug: "fixed-alias",
     });
     assertEqual(second.status, 409, "duplicate status");
     const stored = await firstHandler(
-      new Request("http://localhost/api/pages/fixed-alias"),
+      new Request(`http://localhost${firstCreated.path.replace("/p/", "/api/pages/")}`),
     );
     const body = await stored.json();
     assertEqual(body.title, "Demo", "first page remains");

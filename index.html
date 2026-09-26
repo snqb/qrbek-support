@@ -9,7 +9,7 @@
     <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
     <title>QRbek — Ссылка на оплату</title>
-    <link rel="stylesheet" href="/styles.css?v=20260922-links1">
+    <link rel="stylesheet" href="/styles.css?v=20260926-expiry1">
     <link rel="icon" href="/assets/mark.png">
   </head>
   <body class="builder-page">
@@ -49,6 +49,17 @@
             </details>
             <div class="metadata-fields">
               <label class="field">
+                <span>Срок ссылки</span>
+                <select id="page-lifetime" name="expiresInDays">
+                  <option value="1">1 день</option>
+                  <option value="7">1 неделя</option>
+                  <option value="30">1 месяц</option>
+                  <option value="90">3 месяца</option>
+                  <option value="365" selected>1 год</option>
+                  <option value="1095">3 года</option>
+                </select>
+              </label>
+              <label class="field">
                 <span>Свой адрес <small class="field-optional">необязательно</small></span>
                 <input id="page-slug" type="text" name="slug" maxlength="32"
                   autocapitalize="off" autocomplete="off" spellcheck="false"
@@ -67,13 +78,14 @@
                 class="button button-ghost">Очистить</button>
             </div>
             <p
-              class="disclosure">Создавая ссылку, вы публикуете QR и введённые данные на сервере. Их сможет открыть любой, кто знает или угадает адрес. Фото остаётся в браузере.</p>
+              class="disclosure">Доступна всем по ссылке до конца срока. После этого данные страницы удаляются. Фото не загружаются.</p>
           </section>
         </form>
         <section id="success-panel" aria-labelledby="success-heading" hidden>
           <h1 id="success-heading" tabindex="-1">Ссылка готова</h1>
           <div
             class="link-summary"><h2 id="success-title"></h2><p id="success-summary"></p><code id="published-url"></code></div>
+          <p id="success-expiry" class="disclosure"></p>
           <div class="success-actions">
             <button id="copy-link" type="button"
               class="button button-primary">Копировать ссылку</button>
@@ -90,6 +102,6 @@
         class="site-footer"><a href="/support.html">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></footer>
     </div>
     <script src="/vendor/jsqr.js"></script>
-    <script src="/app.js?v=20260922-links1" type="module"></script>
+    <script src="/app.js?v=20260926-expiry1" type="module"></script>
   </body>
 </html>

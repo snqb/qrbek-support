@@ -1,6 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { BANKS, inspectQr, normalizePage, paymentTarget } from "./payment.js";
 import {
+  DEFAULT_PAGE_LIFETIME_DAYS,
+  isValidPageLifetime,
   isValidPageId,
   PageStore,
   PageStoreError,
@@ -33,6 +35,7 @@ const ASSETS: Record<string, true> = {
   "pay.html": true,
   "app.js": true,
   "payment.js": true,
+  "page-expiry.js": true,
   "styles.css": true,
   "redirect.js": true,
   "create.html": true,
@@ -228,13 +231,15 @@ const readBoundedBody = async (
   }
 };
 
-const assertEnvelope = (value: unknown): { page: unknown; slug?: string } => {
+const assertEnvelope = (
+  value: unknown,
+): { page: unknown; slug?: string; expiresInDays: number } => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new HttpError(400, "invalid_request", "Некорректный запрос.");
   }
   const envelope = value as Record<string, unknown>;
   const unknown = Object.keys(envelope).filter((key) =>
-    key !== "page" && key !== "slug"
+    key !== "page" && key !== "slug" && key !== "expiresInDays"
   );
   if (unknown.length || !("page" in envelope)) {
     throw new HttpError(400, "invalid_request", "Некорректный запрос.");
@@ -242,7 +247,17 @@ const assertEnvelope = (value: unknown): { page: unknown; slug?: string } => {
   if ("slug" in envelope && typeof envelope.slug !== "string") {
     throw new HttpError(400, "invalid_slug", "Адрес должен быть строкой.");
   }
-  return { page: envelope.page, slug: envelope.slug as string | undefined };
+  const expiresInDays = "expiresInDays" in envelope
+    ? envelope.expiresInDays
+    : DEFAULT_PAGE_LIFETIME_DAYS;
+  if (!isValidPageLifetime(expiresInDays)) {
+    throw new HttpError(400, "invalid_lifetime", "Срок ссылки: от 1 до 1095 дней.");
+  }
+  return {
+    page: envelope.page,
+    slug: envelope.slug as string | undefined,
+    expiresInDays,
+  };
 };
 
 const validateSlug = (slug: string | undefined): string | undefined => {
@@ -396,7 +411,7 @@ export const createHandler = (
         const page = await validatePage(parsed.page);
         let record;
         try {
-          record = options.store.create(page, slug);
+          record = options.store.create(page, slug, parsed.expiresInDays);
         } catch (error) {
           if (error instanceof PageStoreError && error.code === "slug_taken") {
             throw new HttpError(409, "slug_taken", "Такой адрес уже занят.");
@@ -410,7 +425,11 @@ export const createHandler = (
           }
           throw error;
         }
-        return jsonResponse({ id: record.id, path: `/p/${record.id}` }, 201);
+        return jsonResponse({
+          id: record.id,
+          path: `/p/${record.id}${record.accessKey ? `?key=${record.accessKey}` : ""}`,
+          expiresAt: record.expiresAt,
+        }, 201);
       }
       if (pathname.startsWith("/api/pages/") && pathname !== "/api/pages/") {
         const rawId = pathname.slice("/api/pages/".length);
@@ -438,14 +457,14 @@ export const createHandler = (
           return methodNotAllowed("GET, HEAD");
         }
         const record = options.store.get(apiId);
-        if (!record) {
+        if (!record || record.accessKey !== url.searchParams.get("key")) {
           throw new HttpError(
             404,
             "not_found",
-            "Ссылка не найдена. Проверьте адрес.",
+            "Ссылка не найдена или срок её действия истёк.",
           );
         }
-        return jsonResponse(record.page);
+        return jsonResponse({ ...record.page, expiresAt: record.expiresAt });
       }
       // Redirect documents only: already-open legacy tabs still need their
       // same-origin API and assets. Omitting a fragment preserves #p and #draft.

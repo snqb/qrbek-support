@@ -5,6 +5,7 @@ import {
   normalizePage,
   paymentTarget,
 } from "./payment.js?v=20260922-amount2";
+import { formatExpiry, watchPageExpiry } from "./page-expiry.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -120,7 +121,7 @@ function initBuilder() {
     setText(
       $("#slug-preview"),
       slug
-        ? `${location.host}/p/${slug}`
+        ? `${location.host}/p/${slug} · с уникальным кодом ссылки`
         : "Оставьте пустым для случайного адреса.",
     );
     slugInput.removeAttribute("aria-invalid");
@@ -498,12 +499,17 @@ function initBuilder() {
       const created = await requestPage("/api/pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page: normalized, ...(slug ? { slug } : {}) }),
+        body: JSON.stringify({
+          page: normalized,
+          expiresInDays: Number($("#page-lifetime").value),
+          ...(slug ? { slug } : {}),
+        }),
       });
       if (
         typeof created.id !== "string" ||
         !/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(created.id) ||
-        created.path !== `/p/${created.id}`
+        (created.path !== `/p/${created.id}` &&
+          !new RegExp(`^/p/${created.id}\\?key=[a-f0-9]{32}$`).test(created.path))
       ) {
         throw new Error("Сервер вернул некорректный адрес страницы.");
       }
@@ -516,6 +522,7 @@ function initBuilder() {
           normalized.amount ? ` · ${formatAmount(normalized.amount)} сом` : ""
         }`,
       );
+      setText($("#success-expiry"), formatExpiry(created.expiresAt));
       $("#published-url").textContent = url;
       $("#open-link").href = path;
       show($("#success-panel"));
@@ -570,13 +577,24 @@ async function initReceiver() {
   const pagePanel = $("#payment-page");
   if (!pagePanel) return;
   let page;
+  let expiresAt;
   try {
     const shortLink = location.pathname.match(
       /^\/p\/([a-z0-9][a-z0-9-]{1,30}[a-z0-9])$/,
     );
-    page = shortLink
-      ? normalizePage(await requestPage(`/api/pages/${shortLink[1]}`))
-      : decodePage(location.hash);
+    if (shortLink) {
+      const key = new URLSearchParams(location.search).get("key");
+      const stored = await requestPage(
+        `/api/pages/${shortLink[1]}${key ? `?key=${encodeURIComponent(key)}` : ""}`,
+      );
+      expiresAt = stored.expiresAt;
+      setText($("#receiver-expiry"), formatExpiry(expiresAt));
+      show($("#receiver-expiry"));
+      const { expiresAt: _expiry, ...pageData } = stored;
+      page = normalizePage(pageData);
+    } else {
+      page = decodePage(location.hash);
+    }
   } catch (error) {
     show($("#invalid-state"));
     setText(
@@ -610,7 +628,19 @@ async function initReceiver() {
     handoff.removeAttribute("href");
     handoff.setAttribute("aria-disabled", "true");
   };
+  const expired = expiresAt
+    ? watchPageExpiry(expiresAt, () => {
+      inspectToken += 1;
+      clearHandoff();
+      hide(pagePanel);
+      pagePanel.replaceChildren();
+      show($("#invalid-state"));
+      setText($("#invalid-message"), "Срок ссылки истёк. Попросите новую ссылку.");
+    })
+    : () => false;
+  if (expired()) return;
   const prepareHandoff = async () => {
+    if (expired()) return;
     clearHandoff();
     const token = handoffToken;
     const inspected = selected.inspected;
@@ -622,7 +652,7 @@ async function initReceiver() {
       const target = inspected.kind === "sbp"
         ? selected.target
         : await paymentTarget(method.value, page.amount, source);
-      if (token !== handoffToken || !target?.url) return;
+      if (expired() || token !== handoffToken || !target?.url) return;
       handoff.href = target.url;
       handoff.setAttribute("aria-disabled", "false");
       handoff.textContent = inspected.kind === "sbp"
@@ -716,7 +746,7 @@ async function initReceiver() {
         );
       }
       const target = await paymentTarget(method.value, page.amount || "", "");
-      if (token !== inspectToken) return;
+      if (expired() || token !== inspectToken) return;
       selected.inspected = inspected;
       selected.target = target;
       const displayedAmount = page.amount || target.amount;
@@ -727,7 +757,7 @@ async function initReceiver() {
       setText($("#receiver-amount"), formatAmount(displayedAmount));
       $("#amount-band").hidden = !displayedAmount;
       await drawQr(canvas, target.qrText);
-      if (token !== inspectToken) return;
+      if (expired() || token !== inspectToken) return;
       hide(placeholder);
       show(canvas);
       show($("#download-qr"));
@@ -754,6 +784,7 @@ async function initReceiver() {
     }
   };
   $("#download-qr").addEventListener("click", () => {
+    if (expired()) return;
     const canvas = $("#payment-qr");
     if (!canvas?.toDataURL) return;
     const anchor = document.createElement("a");
@@ -762,6 +793,10 @@ async function initReceiver() {
     anchor.click();
   });
   handoff.addEventListener("click", (event) => {
+    if (expired()) {
+      event.preventDefault();
+      return;
+    }
     if (handoff.hasAttribute("href")) return;
     event.preventDefault();
     announce(
