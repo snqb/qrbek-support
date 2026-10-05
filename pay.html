@@ -11,7 +11,7 @@
       content="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; style-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
     <title>QRbek — Перевод по QR</title>
     <meta name="robots" content="noindex, nofollow">
-    <link rel="stylesheet" href="/receiver.css?v=20261005">
+    <link rel="stylesheet" href="/receiver.css?v=20261006-grid">
     <link rel="icon" href="/assets/mark.png">
   </head>
   <body class="receiver-page">
@@ -28,45 +28,42 @@
           <a href="/" class="button">Создать ссылку</a>
         </section>
         <section id="payment-page" hidden>
-          <h1 id="receiver-title" hidden></h1>
-          <div id="receiver-recipient" class="receiver-recipient" hidden>
-            <img id="receiver-recipient-icon" alt="" width="20" height="20" hidden>
-            <span id="receiver-recipient-bank"></span>
-          </div>
-          <div id="receiver-methods" role="group" aria-label="QR получателя" hidden></div>
-          <div id="amount-band" hidden>
-            <strong id="receiver-amount"></strong><span class="currency">сом</span>
-          </div>
-          <div id="amount-entry" hidden>
-            <label for="payment-amount">Сумма</label>
-            <div class="amount-field">
-              <input id="payment-amount" type="text" inputmode="decimal" enterkeyhint="done"
-                autocomplete="off" placeholder="Необязательно" aria-describedby="amount-error">
-              <span class="currency">сом</span>
+          <section class="recipient-hero" aria-label="Получатель и QR">
+            <div class="recipient-details">
+              <p class="recipient-label">Получатель</p>
+              <h1 id="receiver-title" hidden></h1>
+              <p id="missing-name" class="missing-name" hidden>Имя не указано</p>
+              <div id="receiver-recipient" class="receiver-recipient" hidden>
+                <img id="receiver-recipient-icon" alt="" width="20" height="20" hidden>
+                <span id="receiver-recipient-bank"></span>
+              </div>
+              <div id="amount-band" hidden>
+                <strong id="receiver-amount"></strong><span class="currency">сом</span>
+              </div>
             </div>
-            <p id="amount-error" role="alert" hidden></p>
-          </div>
+            <div class="qr-preview">
+              <div class="qr-frame">
+                <canvas id="payment-qr" width="480" height="480" aria-label="QR для оплаты" hidden></canvas>
+                <span id="qr-placeholder" role="status">Готовим QR…</span>
+              </div>
+              <button id="download-qr" type="button" disabled>Сохранить QR</button>
+            </div>
+          </section>
+          <div id="receiver-methods" role="group" aria-label="QR получателя" hidden></div>
           <div id="receiver-error" role="alert" hidden></div>
           <section id="bank-picker" class="bank-picker" hidden>
-            <h2 id="source-bank-heading">Ваш банк</h2>
+            <h2 id="source-bank-heading">Выберите банк для перевода</h2>
+            <p class="bank-hint">Откроется приложение вашего банка</p>
             <div id="source-bank-logos" role="group" aria-labelledby="source-bank-heading"></div>
           </section>
           <div id="payment-notice" role="status" hidden></div>
-          <details id="qr-details" class="qr-details">
-            <summary>Показать QR</summary>
-            <div class="qr-frame">
-              <canvas id="payment-qr" width="480" height="480" aria-label="QR для оплаты"></canvas>
-              <span id="qr-placeholder">Готовим QR…</span>
-            </div>
-            <button id="download-qr" type="button" class="button">Сохранить QR</button>
-          </details>
         </section>
       </main>
       <footer class="site-footer">
         <details class="page-info">
           <summary>О ссылке</summary>
           <div class="page-info-content">
-            <p>QRbek открывает QR получателя в вашем банке. Проверьте в нём получателя и сумму.</p>
+            <p>Имя указано автором ссылки. QRbek открывает QR получателя в вашем банке. Проверьте в нём получателя и сумму.</p>
             <p>Открытие банка не означает, что перевод выполнен.</p>
             <p id="receiver-expiry" hidden></p>
             <nav aria-label="Информация"><a href="/support.html">Поддержка</a><a href="/privacy.html">Конфиденциальность</a></nav>
@@ -75,6 +72,6 @@
       </footer>
     </div>
     <script src="/vendor/qrcode.js"></script>
-    <script src="/receiver.js?v=20261005" type="module"></script>
+    <script src="/receiver.js?v=20261006-grid" type="module"></script>
   </body>
 </html>

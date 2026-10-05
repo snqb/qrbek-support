@@ -119,6 +119,7 @@ async function initReceiver() {
     setText(title, page.title);
     show(title);
   } else hide(title);
+  $("#missing-name").hidden = Boolean(page.title);
   if (expiresAt) {
     setText($("#receiver-expiry"), formatExpiry(expiresAt));
     show($("#receiver-expiry"));
@@ -127,9 +128,6 @@ async function initReceiver() {
   const methodList = $("#receiver-methods");
   const recipient = $("#receiver-recipient");
   const bankLinks = $("#source-bank-logos");
-  const amountEntry = $("#amount-entry");
-  const amountInput = $("#payment-amount");
-  const amountError = $("#amount-error");
   const canvas = $("#payment-qr");
   const placeholder = $("#qr-placeholder");
   const picker = $("#bank-picker");
@@ -190,21 +188,12 @@ async function initReceiver() {
         methodList.querySelectorAll(".receiver-method").forEach((other, otherIndex) =>
           other.setAttribute("aria-pressed", otherIndex === index ? "true" : "false")
         );
-        if (amountInput) amountInput.value = "";
         renderSelected();
       });
       methodList.append(row);
     });
   };
 
-  const setAmountMode = (inspected) => {
-    const editable = !page.amount && inspected?.kind === "elqr" && inspected.mutableAmount &&
-      !isPositive(inspected.amount);
-    if (editable) show(amountEntry);
-    else hide(amountEntry);
-    if (!editable && amountInput) amountInput.value = "";
-    return editable;
-  };
 
   const renderSelected = async () => {
     const method = page.methods[selectedIndex];
@@ -217,8 +206,6 @@ async function initReceiver() {
     hide($("#amount-band"));
     hide($("#payment-notice"));
     hide(receiverError);
-    hide(amountError);
-    if (amountInput) amountInput.removeAttribute("aria-invalid");
     show(placeholder);
     setText(placeholder, "Готовим QR…");
     hide(recipient);
@@ -227,9 +214,7 @@ async function initReceiver() {
       inspected = await inspectQr(method.value);
       if (expired() || token !== generation) return;
       updateRecipient(method, inspected);
-      const editable = setAmountMode(inspected);
-      const entered = editable ? amountInput?.value.trim().replace(",", ".") || "" : "";
-      const requested = page.amount || entered;
+      const requested = page.amount;
       if (inspected.kind === "sbp" && page.amount) {
         throw new Error("Для СБП сумма задаётся в исходном банковском QR; сумма страницы должна быть пустой.");
       }
@@ -237,8 +222,7 @@ async function initReceiver() {
       if (expired() || token !== generation) return;
       const displayedAmount = page.amount || target.amount || "";
       setText($("#receiver-amount"), formatAmount(displayedAmount));
-      $("#amount-band").hidden = editable || !isPositive(displayedAmount);
-      announce(amountError, "");
+      $("#amount-band").hidden = !isPositive(displayedAmount);
       const bankLinksReady = prepareReceiverBankLinks({
         container: bankLinks,
         banks: BANKS,
@@ -269,24 +253,11 @@ async function initReceiver() {
       clearReceiverBankLinks(bankLinks);
       clearDownload(download);
       hide(canvas);
-      if (amountInput && setAmountMode(inspected)) {
-        announce(amountError, error.message || "Введите положительную сумму.", true);
-        amountInput.setAttribute("aria-invalid", "true");
-        setText(placeholder, "Исправьте сумму, чтобы показать QR.");
-      } else {
-        setText(placeholder, "Этот QR нельзя показать безопасно.");
-        announce(receiverError, error.message || "Реквизит не распознан.", true);
-      }
+      setText(placeholder, "Этот QR нельзя показать безопасно.");
+      announce(receiverError, error.message || "Реквизит не распознан.", true);
     }
   };
 
-  amountInput?.addEventListener("input", renderSelected);
-  amountInput?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      amountInput.blur();
-    }
-  });
   download?.addEventListener("click", () => {
     if (expired() || download.disabled || !canvas?.toDataURL) return;
     const anchor = document.createElement("a");
