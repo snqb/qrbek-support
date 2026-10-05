@@ -4,6 +4,7 @@ import {
   DEFAULT_PAGE_LIFETIME_DAYS,
   isValidPageLifetime,
   isValidPageId,
+  PAGE_ID_PATTERN,
   PageStore,
   PageStoreError,
   type PageV1,
@@ -237,7 +238,7 @@ const readBoundedBody = async (
 
 const assertEnvelope = (
   value: unknown,
-): { page: unknown; slug?: string; expiresInDays: number } => {
+): { page: unknown; slug?: string; expiresInDays: number | null } => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new HttpError(400, "invalid_request", "Некорректный запрос.");
   }
@@ -255,7 +256,7 @@ const assertEnvelope = (
     ? envelope.expiresInDays
     : DEFAULT_PAGE_LIFETIME_DAYS;
   if (!isValidPageLifetime(expiresInDays)) {
-    throw new HttpError(400, "invalid_lifetime", "Срок ссылки: от 1 до 1095 дней.");
+    throw new HttpError(400, "invalid_lifetime", "Срок ссылки: без ограничения или от 1 до 1095 дней.");
   }
   return {
     page: envelope.page,
@@ -266,7 +267,7 @@ const assertEnvelope = (
 
 const validateSlug = (slug: string | undefined): string | undefined => {
   if (slug === undefined || slug === "") return undefined;
-  if (!isValidPageId(slug)) {
+  if (!PAGE_ID_PATTERN.test(slug)) {
     throw new HttpError(
       400,
       "invalid_slug",
@@ -431,7 +432,9 @@ export const createHandler = (
         }
         return jsonResponse({
           id: record.id,
-          path: `/p/${record.id}${record.accessKey ? `?key=${record.accessKey}` : ""}`,
+          path: record.id.startsWith("@")
+            ? `/${record.id}`
+            : `/p/${record.id}${record.accessKey ? `?key=${record.accessKey}` : ""}`,
           expiresAt: record.expiresAt,
         }, 201);
       }
@@ -447,7 +450,7 @@ export const createHandler = (
       }
       if (pathname.startsWith("/p/") && pathname !== "/p/") {
         const rawId = pathname.slice("/p/".length);
-        if (!isValidPageId(rawId)) {
+        if (!PAGE_ID_PATTERN.test(rawId)) {
           throw new HttpError(
             400,
             "invalid_id",
@@ -476,7 +479,7 @@ export const createHandler = (
         publicOrigin && publicOrigin !== LEGACY_ORIGIN.origin && isLegacyHost &&
         (request.method === "GET" || request.method === "HEAD") &&
         (pathname.endsWith("/") || pathname.endsWith(".html") ||
-          pathname.startsWith("/p/"))
+          pathname.startsWith("/p/") || pathname.startsWith("/@"))
       ) {
         return new Response(null, {
           status: 308,
@@ -486,7 +489,9 @@ export const createHandler = (
           },
         });
       }
-      const pageId = readPageId(pathname, "/p/");
+      const pageId = pathname.startsWith("/@")
+        ? readPageId(pathname, "/")
+        : readPageId(pathname, "/p/");
       if (pageId !== null) {
         if (request.method !== "GET" && request.method !== "HEAD") {
           return methodNotAllowed("GET, HEAD");

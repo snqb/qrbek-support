@@ -52,9 +52,11 @@ if (test) {
     const created = await post(handler, { page: input, slug: "demo-pay" });
     assertEqual(created.status, 201, "create status");
     const createdBody = await created.json();
-    assertEqual(createdBody.id, "demo-pay", "custom id");
+    assertEqual(createdBody.id, "@demo-pay", "custom id");
+    assertEqual(createdBody.path, "/@demo-pay", "permanent custom address");
+    assertEqual(createdBody.expiresAt, null, "permanent page expiry");
     const fetched = await handler(
-      new Request(`http://localhost${createdBody.path.replace("/p/", "/api/pages/")}`),
+      new Request(`http://localhost/api/pages/${createdBody.id}`),
     );
     assertEqual(fetched.status, 200, "fetch status");
     const fetchedBody = await fetched.json();
@@ -85,7 +87,7 @@ if (test) {
     });
     assertEqual(second.status, 409, "duplicate status");
     const stored = await firstHandler(
-      new Request(`http://localhost${firstCreated.path.replace("/p/", "/api/pages/")}`),
+      new Request(`http://localhost/api/pages/${firstCreated.id}`),
     );
     const body = await stored.json();
     assertEqual(body.title, "Demo", "first page remains");
@@ -170,6 +172,7 @@ if (test) {
         const path of [
           "/",
           "/p/kept-page?from=qr",
+          "/@kept-page",
           "/pay.html",
           "/create.html",
           "/interface-design/",

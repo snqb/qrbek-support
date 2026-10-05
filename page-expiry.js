@@ -1,4 +1,5 @@
 export function expiryTimestamp(value) {
+  if (value === null) return null;
   if (typeof value !== "string") throw new Error("Сервер не указал срок ссылки.");
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp)) throw new Error("Некорректный срок ссылки.");
@@ -6,6 +7,7 @@ export function expiryTimestamp(value) {
 }
 
 export function formatExpiry(value) {
+  if (value === null) return "Без срока действия";
   return `Действует до ${new Intl.DateTimeFormat("ru", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -15,6 +17,7 @@ export function formatExpiry(value) {
 /** Recheck on foreground/BFCache restoration as browser timers can be suspended. */
 export function watchPageExpiry(value, onExpired) {
   const deadline = expiryTimestamp(value);
+  if (deadline === null) return () => false;
   let timer;
   let expired = false;
   const check = () => {

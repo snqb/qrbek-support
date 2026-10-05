@@ -5,7 +5,7 @@ import {
   normalizePage,
   paymentTarget,
 } from "./payment.js?v=20260922-amount2";
-import { formatExpiry, watchPageExpiry } from "./page-expiry.js";
+import { expiryTimestamp, formatExpiry, watchPageExpiry } from "./page-expiry.js";
 import {
   clearReceiverBankLinks,
   prepareReceiverBankLinks,
@@ -86,7 +86,8 @@ const isPositive = (value) =>
   Boolean(value && !/^0(?:\.0*)?$/.test(String(value)));
 
 async function loadPage() {
-  const shortLink = location.pathname.match(
+  const permanentAlias = location.pathname.match(/^\/(@[a-z0-9][a-z0-9-]{1,30}[a-z0-9])$/);
+  const shortLink = permanentAlias || location.pathname.match(
     /^\/p\/([a-z0-9][a-z0-9-]{1,30}[a-z0-9])$/,
   );
   if (shortLink) {
@@ -94,6 +95,7 @@ async function loadPage() {
     const suffix = key ? `?key=${encodeURIComponent(key)}` : "";
     const stored = await requestPage(`/api/pages/${shortLink[1]}${suffix}`);
     const { expiresAt, ...pageData } = stored;
+    if (expiresAt !== null) expiryTimestamp(expiresAt);
     return { page: normalizePage(pageData), expiresAt };
   }
   return { page: decodePage(location.hash), expiresAt: "" };
@@ -120,7 +122,7 @@ async function initReceiver() {
     show(title);
   } else hide(title);
   $("#missing-name").hidden = Boolean(page.title);
-  if (expiresAt) {
+  if (expiresAt === null || expiresAt) {
     setText($("#receiver-expiry"), formatExpiry(expiresAt));
     show($("#receiver-expiry"));
   }

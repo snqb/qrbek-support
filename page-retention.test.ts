@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { createHandler } from "./server.ts";
-import { MAX_PAGE_LIFETIME_DAYS, PAGE_DAY_MS, PageStore, type PageV1 } from "./page-store.ts";
+import { PAGE_DAY_MS, PageStore, type PageV1 } from "./page-store.ts";
 
 const page: PageV1 = {
   v: 1, title: "Retention fixture", note: "", amount: "", currency: "KGS",
@@ -22,7 +22,7 @@ Deno.test("expiry bounds reject invalid requests without storing a page", async 
   const store = new PageStore({ path: ":memory:" });
   const handler = createHandler({ store, rateLimit: 100 });
   try {
-    for (const expiresInDays of [0, -1, 1.5, 1096, "365", null, true]) {
+    for (const expiresInDays of [0, -1, 1.5, 1096, "365", true]) {
       const response = await post(handler, { page, expiresInDays });
       assert(response.status === 400, `accepted invalid duration ${expiresInDays}`);
       assert((await response.json()).error === "invalid_lifetime", "wrong validation error");
@@ -54,18 +54,6 @@ Deno.test("server publishes authoritative expiry and denies the exact deadline",
   } finally { store.close(); }
 });
 
-Deno.test("old clients receive one year and maximum retention is 1095 days", async () => {
-  const now = Date.UTC(2028, 1, 29, 12);
-  const store = new PageStore({ path: ":memory:", now: () => now });
-  const handler = createHandler({ store, rateLimit: 100 });
-  try {
-    const oldClient = await (await post(handler, { page })).json();
-    assert(Date.parse(oldClient.expiresAt) === now + 365 * PAGE_DAY_MS, "old client has no bounded default");
-    const maximum = await post(handler, { page, expiresInDays: MAX_PAGE_LIFETIME_DAYS });
-    assert(maximum.status === 201, "maximum rejected");
-    assert(Date.parse((await maximum.json()).expiresAt) === now + 1095 * PAGE_DAY_MS, "maximum extended");
-  } finally { store.close(); }
-});
 
 Deno.test("legacy migration uses original creation time and physically deletes overdue payloads", async () => {
   const directory = await Deno.makeTempDir({ prefix: "qrbek-retention-" });
@@ -82,7 +70,7 @@ Deno.test("legacy migration uses original creation time and physically deletes o
   try {
     assert(store.get("expired") === null, "legacy overdue page survived startup");
     const retained = store.get("retained");
-    assert(retained !== null, "young legacy page was removed");
+    assert(retained !== null && retained.expiresAt !== null, "legacy deadline was removed");
     assert(Date.parse(retained.expiresAt) === now + 995 * PAGE_DAY_MS, "migration extended old page lifetime");
     store.close();
     const reopened = new PageStore({ path, now: () => now + PAGE_DAY_MS });
@@ -102,17 +90,19 @@ Deno.test("expired custom links never resolve to a later recipient using the sam
   const store = new PageStore({ path: ":memory:", now: () => now });
   const handler = createHandler({ store, rateLimit: 100 });
   const lookup = (path: string) =>
-    handler(new Request(`http://localhost${path.replace("/p/", "/api/pages/")}`));
+    handler(new Request(`http://localhost${path.startsWith("/@") ? `/api/pages${path}` : path.replace("/p/", "/api/pages/")}`));
   try {
     const first = await (await post(handler, { page, slug: "shop", expiresInDays: 1 })).json();
     assert((await lookup(first.path)).status === 200, "new custom link is unavailable");
     now += PAGE_DAY_MS;
+    const duplicate = await post(handler, { page, slug: "shop", expiresInDays: 1 });
+    assert(duplicate.status === 409, "retired address was reassigned");
     const replacement = await (await post(handler, {
-      page: { ...page, title: "Different recipient" }, slug: "shop", expiresInDays: 1,
+      page: { ...page, title: "Different recipient" }, slug: "shop", expiresInDays: null,
     })).json();
-    assert(first.path !== replacement.path, "alias recycling reused original URL");
-    assert((await lookup(first.path)).status === 404, "old link revived");
+    assert(replacement.path === "/@shop", "permanent link did not use separate namespace");
+    assert((await lookup(first.path)).status === 404, "old keyed link revived");
     assert((await lookup("/p/shop")).status === 404, "legacy unkeyed link revived");
-    assert((await (await lookup(replacement.path)).json()).title === "Different recipient", "replacement unavailable");
+    assert((await (await lookup(replacement.path)).json()).title === "Different recipient", "permanent page unavailable");
   } finally { store.close(); }
 });

@@ -106,7 +106,7 @@ function initBuilder() {
     setText(
       $("#slug-preview"),
       slug
-        ? `${location.host}/p/${slug} · с уникальным кодом ссылки`
+        ? `${location.host}/@${slug}`
         : "Оставьте пустым для случайного адреса.",
     );
     slugInput.removeAttribute("aria-invalid");
@@ -302,17 +302,16 @@ function initBuilder() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           page: normalized,
-          expiresInDays: Number($("#page-lifetime").value),
+          expiresInDays: null,
           ...(slug ? { slug } : {}),
         }),
       });
-      if (
-        typeof created.id !== "string" ||
-        !/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(created.id) ||
-        (created.path !== `/p/${created.id}` &&
-          !new RegExp(`^/p/${created.id}\\?key=[a-f0-9]{32}$`).test(created.path))
-      ) {
-        throw new Error("Сервер вернул некорректный адрес страницы.");
+      const validId = slug
+        ? created.id === `@${slug}`
+        : typeof created.id === "string" && /^[a-f0-9]{32}$/.test(created.id);
+      const expectedPath = slug ? `/@${slug}` : `/p/${created.id}`;
+      if (!validId || created.path !== expectedPath || created.expiresAt !== null) {
+        throw new Error("Сервер вернул некорректный адрес или срок страницы.");
       }
       const path = created.path;
       const url = `${location.origin}${path}`;

@@ -1,12 +1,13 @@
 import { DatabaseSync, type StatementSync } from "node:sqlite";
 import { dirname } from "node:path";
+import { migratePageStore } from "./page-store-schema.ts";
 
 export const PAGE_DAY_MS = 86_400_000;
-export const DEFAULT_PAGE_LIFETIME_DAYS = 365;
+export const DEFAULT_PAGE_LIFETIME_DAYS = null;
 export const MAX_PAGE_LIFETIME_DAYS = 1095;
-export const isValidPageLifetime = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) &&
-  value >= 1 && value <= MAX_PAGE_LIFETIME_DAYS;
+export const isValidPageLifetime = (value: unknown): value is number | null =>
+  value === null || (typeof value === "number" && Number.isInteger(value) &&
+    value >= 1 && value <= MAX_PAGE_LIFETIME_DAYS);
 
 export type PageV1 = {
   v: 1;
@@ -26,7 +27,7 @@ export type StoredPage = {
   id: string;
   page: PageV1;
   createdAt: string;
-  expiresAt: string;
+  expiresAt: string | null;
   accessKey: string | null;
 };
 
@@ -49,7 +50,7 @@ export class PageStoreError extends Error {
 // Both random IDs and user aliases use this conservative path-safe alphabet.
 export const PAGE_ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/;
 export const isValidPageId = (value: string): boolean =>
-  PAGE_ID_PATTERN.test(value);
+  PAGE_ID_PATTERN.test(value.startsWith("@") ? value.slice(1) : value);
 
 export type PageStoreOptions = {
   path: string;
@@ -70,6 +71,7 @@ export class PageStore {
   readonly maxRecords: number;
   private readonly database: DatabaseSync;
   private readonly insertStatement: StatementSync;
+  private readonly reserveAddressStatement: StatementSync;
   private readonly getStatement: StatementSync;
   private readonly countStatement: StatementSync;
   private readonly deleteExpiredStatement: StatementSync;
@@ -96,15 +98,16 @@ export class PageStore {
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;
       PRAGMA secure_delete = ON;
-      CREATE TABLE IF NOT EXISTS pages (
-        id TEXT PRIMARY KEY NOT NULL,
-        page_json TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        access_key TEXT
-      ) STRICT;
     `);
-    this.migrateExpiry();
+    try {
+      migratePageStore(this.database);
+    } catch (error) {
+      this.database.close();
+      throw error;
+    }
+    this.reserveAddressStatement = this.database.prepare(
+      "INSERT INTO page_addresses (id) VALUES (?) ON CONFLICT(id) DO NOTHING",
+    );
     this.insertStatement = this.database.prepare(
       "INSERT INTO pages (id, page_json, created_at, expires_at, access_key) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING",
     );
@@ -112,7 +115,7 @@ export class PageStore {
       "SELECT id, page_json, created_at, expires_at, access_key FROM pages WHERE id = ?",
     );
     this.countStatement = this.database.prepare(
-      "SELECT COUNT(*) AS count FROM pages WHERE expires_at > ?",
+      "SELECT COUNT(*) AS count FROM pages WHERE expires_at IS NULL OR expires_at > ?",
     );
     this.deleteExpiredStatement = this.database.prepare(
       "DELETE FROM pages WHERE expires_at <= ?",
@@ -134,27 +137,31 @@ export class PageStore {
   create(
     page: PageV1,
     requestedId?: string,
-    expiresInDays = DEFAULT_PAGE_LIFETIME_DAYS,
+    expiresInDays: number | null = DEFAULT_PAGE_LIFETIME_DAYS,
   ): StoredPage {
     this.ensureOpen();
-    if (requestedId !== undefined && !isValidPageId(requestedId)) {
+    if (requestedId !== undefined && !PAGE_ID_PATTERN.test(requestedId)) {
       throw new Error("invalid page id");
     }
     if (!isValidPageLifetime(expiresInDays)) {
-      throw new RangeError("page lifetime must be 1–1095 whole days");
+      throw new RangeError("page lifetime must be null or 1–1095 whole days");
     }
     this.purgeExpired();
     const serialized = JSON.stringify(page);
     const created = this.now();
     const createdAt = new Date(created).toISOString();
-    const expiresAt = new Date(created + expiresInDays * PAGE_DAY_MS).toISOString();
-    // A recycled alias must never revive an old payment URL with a new payee.
-    // Keep this generation key only as long as the page, not a permanent tombstone.
-    const accessKey = requestedId === undefined ? null : randomId();
+    const expiresAt = expiresInDays === null
+      ? null
+      : new Date(created + expiresInDays * PAGE_DAY_MS).toISOString();
+    // Old finite custom links keep generation keys. Permanent addresses are
+    // never reassigned, so new ones need no key in their public URL.
+    const accessKey = requestedId !== undefined && expiresInDays !== null ? randomId() : null;
     const attempts = requestedId === undefined ? 8 : 1;
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const id = requestedId ?? randomId();
+      const id = requestedId === undefined
+        ? randomId()
+        : expiresInDays === null ? `@${requestedId}` : requestedId;
       let transactionOpen = false;
       try {
         // BEGIN IMMEDIATE makes the cap check and insert one atomic operation,
@@ -163,6 +170,9 @@ export class PageStore {
         transactionOpen = true;
         if (this.count() >= this.maxRecords) {
           throw new PageStoreError("capacity");
+        }
+        if (this.reserveAddressStatement.run(id).changes === 0) {
+          throw new PageStoreError("slug_taken");
         }
         if (this.insertStatement.run(id, serialized, createdAt, expiresAt, accessKey).changes === 0) {
           throw new PageStoreError("slug_taken");
@@ -197,18 +207,19 @@ export class PageStore {
       id?: string;
       page_json?: string;
       created_at?: string;
-      expires_at?: string;
+      expires_at?: string | null;
       access_key?: string | null;
     } | undefined;
     if (!row) return null;
     if (
       typeof row.id !== "string" || typeof row.page_json !== "string" ||
-      typeof row.created_at !== "string" || typeof row.expires_at !== "string" ||
-      !Number.isFinite(Date.parse(row.expires_at))
+      typeof row.created_at !== "string" ||
+      (row.expires_at !== null && (typeof row.expires_at !== "string" ||
+        !Number.isFinite(Date.parse(row.expires_at))))
     ) {
       throw new Error("stored page row is corrupt");
     }
-    if (Date.parse(row.expires_at) <= this.now()) {
+    if (row.expires_at !== null && Date.parse(row.expires_at) <= this.now()) {
       this.purgeExpired();
       return null;
     }
@@ -234,35 +245,6 @@ export class PageStore {
     if (removed > 0) this.database.exec("PRAGMA wal_checkpoint(TRUNCATE)");
     this.scheduleCleanup();
     return removed;
-  }
-
-  private migrateExpiry(): void {
-    this.database.exec("BEGIN IMMEDIATE");
-    try {
-      const columns = this.database.prepare("PRAGMA table_info(pages)").all();
-      if (!columns.some((column) => column.name === "expires_at")) {
-        this.database.exec("ALTER TABLE pages ADD COLUMN expires_at TEXT");
-      }
-      if (!columns.some((column) => column.name === "access_key")) {
-        this.database.exec("ALTER TABLE pages ADD COLUMN access_key TEXT");
-      }
-      // Existing links keep their original creation time, never three more years.
-      this.database.exec(`
-        UPDATE pages
-        SET expires_at = strftime('%Y-%m-%dT%H:%M:%fZ', created_at, '+1095 days')
-        WHERE expires_at IS NULL;
-        CREATE INDEX IF NOT EXISTS pages_expiry ON pages(expires_at);
-      `);
-      const corrupt = this.database.prepare(
-        "SELECT 1 FROM pages WHERE expires_at IS NULL LIMIT 1",
-      ).get();
-      if (corrupt) throw new Error("stored page creation time is corrupt");
-      this.database.exec("COMMIT");
-    } catch (error) {
-      this.database.exec("ROLLBACK");
-      this.database.close();
-      throw error;
-    }
   }
 
   private scheduleCleanup(): void {
